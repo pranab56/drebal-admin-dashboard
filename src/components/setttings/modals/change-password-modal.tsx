@@ -162,6 +162,7 @@ export const ChangePasswordModal = ({ onClose }: BaseModalProps) => {
           className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
           onClick={() => togglePasswordVisibility(field)}
         >
+
           {showPasswords[field] ? (
             <EyeOff className="h-4 w-4 text-muted-foreground" />
           ) : (
@@ -235,7 +236,7 @@ export const ChangePasswordModal = ({ onClose }: BaseModalProps) => {
 
       {/* Verify Code Modal */}
       {currentModal === 'verify' && (
-        <VerifyCodeModal 
+        <VerifyCodeModal
           onClose={handleCloseAll}
           onVerifySuccess={handleVerifySuccess}
           email={userEmail}

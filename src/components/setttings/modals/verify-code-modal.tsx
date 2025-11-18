@@ -106,6 +106,7 @@ export const VerifyCodeModal = ({ onClose, onVerifySuccess, email }: VerifyCodeM
     }
   };
 
+
   return (
     <Dialog open={true} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
