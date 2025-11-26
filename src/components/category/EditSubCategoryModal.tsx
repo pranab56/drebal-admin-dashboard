@@ -1,4 +1,4 @@
-// components/category/EditCategoryModal.tsx
+// components/category/EditSubCategoryModal.tsx
 "use client";
 
 import { Button } from '@/components/ui/button';
@@ -10,64 +10,82 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Upload, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { Category } from './types/category';
+import { Category, SubCategory } from './types/category';
 
-interface EditCategoryModalProps {
+interface EditSubCategoryModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (category: Category & { imageFile?: File }) => void;
-  category: Category | null;
+  onSave: (subCategory: SubCategory & { imageFile?: File }) => void;
+  subCategory: SubCategory | null;
+  categories: Category[];
 }
 
-const EditCategoryModal: React.FC<EditCategoryModalProps> = ({
+const EditSubCategoryModal: React.FC<EditSubCategoryModalProps> = ({
   isOpen,
   onClose,
   onSave,
-  category,
+  subCategory,
+  categories,
 }) => {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    image: ''
+    image: '', // For preview
+    categoryId: ''
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [originalImage, setOriginalImage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
 
   useEffect(() => {
-    if (category) {
+    if (subCategory) {
       setFormData({
-        name: category.name,
-        description: category.description || '',
-        image: category.image
+        name: subCategory.name,
+        description: subCategory.description || '',
+        image: subCategory.image,
+        categoryId: subCategory.categoryId.toString()
       });
-      setImageFile(null); // Reset file when category changes
+      setOriginalImage(subCategory.image);
+      setImageFile(null);
     }
-  }, [category]);
+  }, [subCategory]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!category) return;
+    if (!subCategory) return;
 
     setIsLoading(true);
 
     try {
-      const updatedCategory = {
-        ...category,
+      const selectedCategory = categories.find(cat => cat.id === parseInt(formData.categoryId));
+      if (!selectedCategory) return;
+
+      const updatedSubCategory = {
+        ...subCategory,
         name: formData.name,
         description: formData.description,
         image: imageFile ? URL.createObjectURL(imageFile) : formData.image,
+        categoryId: parseInt(formData.categoryId),
+        categoryName: selectedCategory.name,
         ...(imageFile && { imageFile }) // Only include if new file is uploaded
       };
 
-      await onSave(updatedCategory);
+      await onSave(updatedSubCategory);
       onClose();
     } catch (error) {
-      console.error('Error updating category:', error);
+      console.error('Error updating sub category:', error);
     } finally {
       setIsLoading(false);
     }
@@ -131,8 +149,8 @@ const EditCategoryModal: React.FC<EditCategoryModalProps> = ({
     if (imageFile) {
       // Remove newly uploaded image, revert to original
       setImageFile(null);
-      if (category) {
-        setFormData(prev => ({ ...prev, image: category.image }));
+      if (subCategory) {
+        setFormData(prev => ({ ...prev, image: originalImage }));
       }
     } else {
       // Remove existing image
@@ -140,12 +158,23 @@ const EditCategoryModal: React.FC<EditCategoryModalProps> = ({
     }
   };
 
+  const revertToOriginal = () => {
+    if (subCategory) {
+      setFormData(prev => ({
+        ...prev,
+        image: originalImage
+      }));
+      setImageFile(null);
+    }
+  };
+
   const handleClose = () => {
-    if (category) {
+    if (subCategory) {
       setFormData({
-        name: category.name,
-        description: category.description || '',
-        image: category.image
+        name: subCategory.name,
+        description: subCategory.description || '',
+        image: subCategory.image,
+        categoryId: subCategory.categoryId.toString()
       });
     }
     setImageFile(null);
@@ -153,40 +182,59 @@ const EditCategoryModal: React.FC<EditCategoryModalProps> = ({
     onClose();
   };
 
-  const hasImageChanged = imageFile !== null || formData.image !== category?.image;
+  const hasImageChanged = imageFile !== null || formData.image !== originalImage;
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Edit Category</DialogTitle>
+          <DialogTitle>Edit Sub Category</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2 w-full">
+            <Label htmlFor="edit-category">Category</Label>
+            <Select
+              value={formData.categoryId}
+              onValueChange={(value) => setFormData({ ...formData, categoryId: value })}
+            >
+              <SelectTrigger className='w-full'>
+                <SelectValue placeholder="Select a category" />
+              </SelectTrigger>
+              <SelectContent>
+                {categories.map((category) => (
+                  <SelectItem key={category.id} value={category.id.toString()}>
+                    {category.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           <div className="space-y-2">
-            <Label htmlFor="edit-name">Category Name</Label>
+            <Label htmlFor="edit-subcategory-name">Sub Category Name</Label>
             <Input
-              id="edit-name"
+              id="edit-subcategory-name"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              placeholder="Enter category name"
+              placeholder="Enter sub category name"
               required
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="edit-description">Description</Label>
+            <Label htmlFor="edit-subcategory-description">Description</Label>
             <Textarea
-              id="edit-description"
+              id="edit-subcategory-description"
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              placeholder="Enter category description"
+              placeholder="Enter sub category description"
               rows={3}
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="edit-image">Category Image</Label>
+            <Label htmlFor="edit-subcategory-image">Sub Category Image</Label>
 
             {!formData.image ? (
               <div
@@ -198,10 +246,10 @@ const EditCategoryModal: React.FC<EditCategoryModalProps> = ({
                 onDragLeave={handleDrag}
                 onDragOver={handleDrag}
                 onDrop={handleDrop}
-                onClick={() => document.getElementById('edit-file-input')?.click()}
+                onClick={() => document.getElementById('edit-subcategory-file-input')?.click()}
               >
                 <input
-                  id="edit-file-input"
+                  id="edit-subcategory-file-input"
                   type="file"
                   accept="image/*"
                   onChange={handleFileInput}
@@ -229,7 +277,7 @@ const EditCategoryModal: React.FC<EditCategoryModalProps> = ({
                     variant="secondary"
                     size="sm"
                     className="w-8 h-8 p-0"
-                    onClick={() => document.getElementById('edit-file-input')?.click()}
+                    onClick={() => document.getElementById('edit-subcategory-file-input')?.click()}
                   >
                     <Upload className="w-4 h-4" />
                   </Button>
@@ -244,17 +292,26 @@ const EditCategoryModal: React.FC<EditCategoryModalProps> = ({
                   </Button>
                 </div>
                 <input
-                  id="edit-file-input"
+                  id="edit-subcategory-file-input"
                   type="file"
                   accept="image/*"
                   onChange={handleFileInput}
                   className="hidden"
                 />
                 {hasImageChanged && (
-                  <div className="absolute top-2 left-2">
+                  <div className="absolute top-2 left-2 flex gap-2">
                     <span className="bg-blue-500 text-white text-xs px-2 py-1 rounded">
                       New Image
                     </span>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-6 px-2 text-xs"
+                      onClick={revertToOriginal}
+                    >
+                      Revert
+                    </Button>
                   </div>
                 )}
               </div>
@@ -283,4 +340,4 @@ const EditCategoryModal: React.FC<EditCategoryModalProps> = ({
   );
 };
 
-export default EditCategoryModal;
+export default EditSubCategoryModal;

@@ -1,7 +1,12 @@
+// components/category/DeleteConfirmationModal.tsx
+"use client";
+
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
@@ -10,37 +15,43 @@ interface DeleteConfirmationModalProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: () => void;
+  title?: string;
+  description?: string;
 }
 
 const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = ({
   isOpen,
   onClose,
   onConfirm,
+  title = "Delete Item",
+  description = "Are you sure you want to delete this item? This action cannot be undone."
 }) => {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Delete</DialogTitle>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>
+            {description}
+          </DialogDescription>
         </DialogHeader>
-        <p className="text-gray-600 mb-6">
-          Are You Sure You Want To Delete This Category?
-        </p>
-        <div className="flex gap-3">
+
+        <DialogFooter className="flex gap-3 sm:gap-0">
           <Button
+            type="button"
             variant="outline"
-            className="flex-1"
             onClick={onClose}
           >
-            No
+            Cancel
           </Button>
           <Button
-            className="flex-1 bg-red-600 hover:bg-red-700"
+            type="button"
+            variant="destructive"
             onClick={onConfirm}
           >
-            Yes
+            Delete
           </Button>
-        </div>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

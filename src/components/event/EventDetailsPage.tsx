@@ -170,7 +170,7 @@ export default function EventDetailsPage({
                   <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Account ID</th>
                   <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Display Name</th>
                   <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Update Date Time</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Action</th>
+                  {/* <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Action</th> */}
                 </tr>
               </thead>
               <tbody>
@@ -180,7 +180,7 @@ export default function EventDetailsPage({
                     <td className="px-4 py-3 text-sm">{ticket.accountId}</td>
                     <td className="px-4 py-3 text-sm">{ticket.displayName}</td>
                     <td className="px-4 py-3 text-sm">{ticket.updateTime}</td>
-                    <td className="px-4 py-3">
+                    {/* <td className="px-4 py-3">
                       <button
                         onClick={() => handleTicketClick(ticket)}
                         className="text-green-600 hover:text-green-700 cursor-pointer"
@@ -190,7 +190,7 @@ export default function EventDetailsPage({
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                         </svg>
                       </button>
-                    </td>
+                    </td> */}
                   </tr>
                 ))}
               </tbody>

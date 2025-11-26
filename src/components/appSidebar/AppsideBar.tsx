@@ -15,8 +15,7 @@ import {
   Grid3x3,
   LogOut,
   Settings,
-  Ticket,
-  User,
+  User
 } from "lucide-react";
 import Image from 'next/image';
 import Link from "next/link";
@@ -34,7 +33,7 @@ const sidebars: SidebarItem[] = [
   { name: "User", path: "/users", icon: User },
   { name: "All Event", path: "/all-event", icon: Calendar },
   { name: "Categories", path: "/categories", icon: FolderOpen },
-  { name: "Re - Sell Tickets", path: "/re-sell-tickets", icon: Ticket },
+  // { name: "Re - Sell Tickets", path: "/re-sell-tickets", icon: Ticket },
   { name: "Settings", path: "/settings", icon: Settings },
 ];
 
@@ -55,7 +54,7 @@ export default function MainlandSidebar() {
         <div className="flex items-center justify-center py-6 px-4">
           <div className="flex flex-col items-center">
             {/* Logo */}
-            <Image src={'/icons/logo.png'} width={200} height={200} className='w-full h-full' alt='Admin logo' />
+            <Image src={'/icons/logo.png'} width={1000} height={1000} className='w-full h-full' alt='Admin logo' />
           </div>
         </div>
 

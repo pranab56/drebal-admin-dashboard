@@ -1,4 +1,4 @@
-// components/category/AddCategoryModal.tsx
+// components/category/AddSubCategoryModal.tsx
 "use client";
 
 import { Button } from '@/components/ui/button';
@@ -10,34 +10,51 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Upload, X } from 'lucide-react';
 import { useState } from 'react';
-import { Category } from './types/category';
+import { Category, SubCategory } from './types/category';
 
-interface AddCategoryModalProps {
+interface AddSubCategoryModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAdd: (category: Omit<Category, 'id' | 'createdAt'>) => void;
+  onAdd: (subCategory: Omit<SubCategory, 'id' | 'createdAt'> & { imageFile?: File }) => void;
+  categories: Category[];
 }
 
-const AddCategoryModal: React.FC<AddCategoryModalProps> = ({
+const AddSubCategoryModal: React.FC<AddSubCategoryModalProps> = ({
   isOpen,
   onClose,
   onAdd,
+  categories,
 }) => {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    image: '' // This will store the base64 string or file object
+    image: '', // For preview
+    categoryId: ''
   });
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.image) {
+
+    if (!formData.categoryId) {
+      alert('Please select a category');
+      return;
+    }
+
+    if (!imageFile) {
       alert('Please upload an image');
       return;
     }
@@ -45,19 +62,29 @@ const AddCategoryModal: React.FC<AddCategoryModalProps> = ({
     setIsLoading(true);
 
     try {
-      // If you're using base64, you can send it directly
-      // If you're uploading to a server, you might need to convert to FormData
-      await onAdd(formData);
-      setFormData({ name: '', description: '', image: '' });
+      const selectedCategory = categories.find(cat => cat.id === parseInt(formData.categoryId));
+      if (!selectedCategory) return;
+
+      await onAdd({
+        name: formData.name,
+        description: formData.description,
+        image: URL.createObjectURL(imageFile), // Temporary URL for preview
+        categoryId: parseInt(formData.categoryId),
+        categoryName: selectedCategory.name,
+        imageFile: imageFile // Pass the actual file
+      });
+
+      setFormData({ name: '', description: '', image: '', categoryId: '' });
+      setImageFile(null);
       onClose();
     } catch (error) {
-      console.error('Error adding category:', error);
+      console.error('Error adding sub category:', error);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleImageUpload = async (file: File) => {
+  const handleImageUpload = (file: File) => {
     if (!file.type.startsWith('image/')) {
       alert('Please upload an image file');
       return;
@@ -68,49 +95,19 @@ const AddCategoryModal: React.FC<AddCategoryModalProps> = ({
       return;
     }
 
-    setIsUploading(true);
-
-    try {
-      // Option 1: Convert to base64 (for smaller files or if your backend accepts base64)
-      const base64 = await convertToBase64(file);
-      setFormData(prev => ({ ...prev, image: base64 as string }));
-
-      // Option 2: If you want to upload to a server first
-      // const imageUrl = await uploadToServer(file);
-      // setFormData(prev => ({ ...prev, image: imageUrl }));
-    } catch (error) {
-      console.error('Error uploading image:', error);
-      alert('Error uploading image');
-    } finally {
-      setIsUploading(false);
-    }
+    setImageFile(file);
+    // Create preview URL
+    const previewUrl = URL.createObjectURL(file);
+    setFormData(prev => ({ ...prev, image: previewUrl }));
   };
 
-  const convertToBase64 = (file: File): Promise<string | ArrayBuffer> => {
+  const convertToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.readAsDataURL(file);
       reader.onload = () => resolve(reader.result as string);
       reader.onerror = error => reject(error);
     });
-  };
-
-  // If you have an actual upload endpoint
-  const uploadToServer = async (file: File): Promise<string> => {
-    const formData = new FormData();
-    formData.append('image', file);
-
-    const response = await fetch('/api/upload', {
-      method: 'POST',
-      body: formData,
-    });
-
-    if (!response.ok) {
-      throw new Error('Upload failed');
-    }
-
-    const data = await response.json();
-    return data.imageUrl;
   };
 
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -143,10 +140,12 @@ const AddCategoryModal: React.FC<AddCategoryModalProps> = ({
 
   const removeImage = () => {
     setFormData(prev => ({ ...prev, image: '' }));
+    setImageFile(null);
   };
 
   const handleClose = () => {
-    setFormData({ name: '', description: '', image: '' });
+    setFormData({ name: '', description: '', image: '', categoryId: '' });
+    setImageFile(null);
     setDragActive(false);
     onClose();
   };
@@ -155,34 +154,53 @@ const AddCategoryModal: React.FC<AddCategoryModalProps> = ({
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Add New Category</DialogTitle>
+          <DialogTitle>Add New Sub Category</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2 w-full">
+            <Label htmlFor="category">Category</Label>
+            <Select
+              value={formData.categoryId}
+              onValueChange={(value) => setFormData({ ...formData, categoryId: value })}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select a category" />
+              </SelectTrigger>
+              <SelectContent>
+                {categories.map((category) => (
+                  <SelectItem key={category.id} value={category.id.toString()}>
+                    {category.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           <div className="space-y-2">
-            <Label htmlFor="name">Category Name</Label>
+            <Label htmlFor="subcategory-name">Sub Category Name</Label>
             <Input
-              id="name"
+              id="subcategory-name"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              placeholder="Enter category name"
+              placeholder="Enter sub category name"
               required
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
+            <Label htmlFor="subcategory-description">Description</Label>
             <Textarea
-              id="description"
+              id="subcategory-description"
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              placeholder="Enter category description"
+              placeholder="Enter sub category description"
               rows={3}
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="image">Category Image</Label>
+            <Label htmlFor="subcategory-image">Sub Category Image</Label>
 
             {!formData.image ? (
               <div
@@ -194,10 +212,10 @@ const AddCategoryModal: React.FC<AddCategoryModalProps> = ({
                 onDragLeave={handleDrag}
                 onDragOver={handleDrag}
                 onDrop={handleDrop}
-                onClick={() => document.getElementById('file-input')?.click()}
+                onClick={() => document.getElementById('subcategory-file-input')?.click()}
               >
                 <input
-                  id="file-input"
+                  id="subcategory-file-input"
                   type="file"
                   accept="image/*"
                   onChange={handleFileInput}
@@ -243,9 +261,9 @@ const AddCategoryModal: React.FC<AddCategoryModalProps> = ({
             </Button>
             <Button
               type="submit"
-              disabled={isLoading || isUploading || !formData.image}
+              disabled={isLoading || isUploading || !formData.image || !formData.categoryId}
             >
-              {isLoading ? 'Adding...' : 'Add Category'}
+              {isLoading ? 'Adding...' : 'Add Sub Category'}
             </Button>
           </div>
         </form>
@@ -254,4 +272,4 @@ const AddCategoryModal: React.FC<AddCategoryModalProps> = ({
   );
 };
 
-export default AddCategoryModal;
+export default AddSubCategoryModal;
