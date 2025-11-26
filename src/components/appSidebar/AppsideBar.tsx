@@ -32,7 +32,7 @@ const sidebars: SidebarItem[] = [
   { name: "Dashboard", path: "/", icon: Grid3x3 },
   { name: "User", path: "/users", icon: User },
   { name: "All Event", path: "/all-event", icon: Calendar },
-  { name: "Categories", path: "/categories", icon: FolderOpen },
+  { name: "Categories&SubCategories", path: "/Categories&SubCategories", icon: FolderOpen },
   // { name: "Re - Sell Tickets", path: "/re-sell-tickets", icon: Ticket },
   { name: "Settings", path: "/settings", icon: Settings },
 ];
