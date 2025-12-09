@@ -6,6 +6,7 @@ import {
   Layers,
   User
 } from "lucide-react";
+import { useGetAllOverviewQuery } from '../../features/overview/overview';
 import IncomeRatioChart from './IncomeRatioChart';
 import RecentUsersTable from './RecentUsersTable';
 import StatsCard from './StatsCard';
@@ -13,6 +14,28 @@ import TicketsSellingChart from './TicketsSellingChart';
 
 // Main Dashboard Component
 export default function MainlandDashboard() {
+  const { data, isLoading, isError } = useGetAllOverviewQuery({});
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-red-600">Error loading dashboard data</div>
+      </div>
+    );
+  }
+
+  const overview = data?.data?.overview;
+  const incomeRatio = data?.data?.incomeRatio;
+  const ticketsSelling = data?.data?.ticketsSelling;
+
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold text-gray-900">Overview</h1>
@@ -22,28 +45,28 @@ export default function MainlandDashboard() {
         <StatsCard
           icon={User}
           title="Total User"
-          value="1200"
+          value={overview?.totalUser?.toString() || "0"}
           bgColor="bg-green-100"
           iconColor="text-green-600"
         />
         <StatsCard
           icon={CreditCard}
           title="Total Sold Tickets"
-          value="2.5K"
+          value={overview?.totalSoldTickets?.toString() || "0"}
           bgColor="bg-green-100"
           iconColor="text-green-600"
         />
         <StatsCard
           icon={Layers}
           title="Categories"
-          value="12"
+          value={overview?.categories?.toString() || "0"}
           bgColor="bg-green-100"
           iconColor="text-green-600"
         />
         <StatsCard
           icon={DollarSign}
           title="Total Revenue"
-          value="$12000.50"
+          value={`$${overview?.totalRevenue?.toLocaleString() || "0"}`}
           bgColor="bg-green-100"
           iconColor="text-green-600"
         />
@@ -52,10 +75,10 @@ export default function MainlandDashboard() {
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 h-full">
-          <IncomeRatioChart />
+          <IncomeRatioChart incomeRatioData={incomeRatio} />
         </div>
         <div className='h-full'>
-          <TicketsSellingChart />
+          <TicketsSellingChart ticketsData={ticketsSelling} />
         </div>
       </div>
 

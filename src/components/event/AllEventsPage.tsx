@@ -1,3 +1,4 @@
+// components/event/AllEventsPage.tsx
 "use client";
 
 import {
@@ -9,156 +10,240 @@ import {
 } from '@/components/ui/select';
 import { MapPin, Search } from 'lucide-react';
 import { useState } from 'react';
-import { eventsData } from './eventData';
-import { AllEventsPageProps, Event } from './eventType';
+import { useGetAllEventsQuery } from '../../features/events/eventApi';
+import { EventListItem } from './eventType';
+import { baseURL } from '../../../utils/BaseURL';
 
-export default function AllEventsPage({ onEventClick }: AllEventsPageProps) {
+export default function AllEventsPage({ onEventClick }: { onEventClick: (eventId: string) => void }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('UnderReview'); // Default to UnderReview
   const [currentPage, setCurrentPage] = useState(1);
 
-  const getStatusColor = (status: Event['status']) => {
+  const { data, isLoading, error } = useGetAllEventsQuery(statusFilter);
+
+  const getStatusColor = (status: string) => {
     switch (status) {
-      case 'pending': return 'bg-yellow-100 text-yellow-700';
-      case 'approved': return 'bg-green-100 text-green-700';
-      case 'rejected': return 'bg-red-100 text-red-700';
+      case 'UnderReview': return 'bg-yellow-100 text-yellow-700';
+      case 'Live': return 'bg-green-100 text-green-700';
+      case 'Rejected': return 'bg-red-100 text-red-700';
+      case 'Completed': return 'bg-blue-100 text-blue-700';
+      case 'Cancelled': return 'bg-gray-100 text-gray-700';
       default: return 'bg-gray-100 text-gray-700';
     }
   };
 
+
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  if (isLoading) {
+    return (
+      <div className="p-6">
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-700"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-6">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <p className="text-red-600">Error loading events. Please try again.</p>
+        </div>
+      </div>
+    );
+  }
+
+  const events = data?.data || [];
+
   return (
-    <div className="">
-      <div className="">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-semibold">All Events</h1>
-          </div>
-
-          <div className="flex gap-3">
-            {/* Search */}
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Name"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-0 focus:ring-green-500"
-              />
-            </div>
-
-            {/* Category Filter - Custom Shadcn Select */}
-            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger className="w-[180px] border border-gray-300 rounded-lg focus:ring-0 ">
-                <SelectValue placeholder="Category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                <SelectItem value="onsite">Onsite Event</SelectItem>
-                <SelectItem value="virtual">Virtual Event</SelectItem>
-              </SelectContent>
-            </Select>
-
-            {/* Status Filter - Custom Shadcn Select */}
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[180px] border border-gray-300 rounded-lg focus:ring-0 ">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="approved">Approved</SelectItem>
-                <SelectItem value="rejected">Rejected</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+    <div className="p-6">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-2">
+          <h1 className="text-2xl font-semibold">All Events</h1>
+          <span className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-sm">
+            {data?.meta?.total || 0} events
+          </span>
         </div>
 
-        {/* Rest of the component remains the same */}
-        <div className="space-y-4">
-          {eventsData.map((event) => (
-            <div key={event.id} className="bg-white rounded-lg border border-gray-200 p-4">
-              <div className="flex gap-4">
-                <div className="w-40 h-36 bg-gray-200 rounded-lg flex-shrink-0"></div>
+        <div className="flex gap-3">
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search events..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 w-64"
+            />
+          </div>
 
-                <div className="w-full flex flex-col gap-3">
-                  <div className="flex justify-between w-full items-start">
+          {/* Status Filter */}
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-[180px] border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="UnderReview">Under Review</SelectItem>
+              <SelectItem value="Live">Live</SelectItem>
+              <SelectItem value="Rejected">Rejected</SelectItem>
+              <SelectItem value="Completed">Completed</SelectItem>
+              <SelectItem value="Cancelled">Cancelled</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {/* Events List */}
+      <div className="space-y-4">
+        {events.length === 0 ? (
+          <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
+            <p className="text-gray-500">No events found</p>
+          </div>
+        ) : (
+          events.map((event: EventListItem) => (
+            <div key={event._id} className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-sm transition-shadow">
+              <div className="flex gap-4">
+                <div className="w-40 h-36 bg-gray-200 rounded-lg flex-shrink-0 overflow-hidden">
+                  {event.image ? (
+                    <img
+                      src={baseURL + event.image}
+                      alt={event.eventName}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-gray-100">
+                      <span className="text-gray-400">No image</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex-1 flex flex-col gap-3">
+                  <div className="flex justify-between items-start">
                     <div>
-                      <h3 className="text-lg font-semibold mb-1">{event.name}</h3>
+                      <h3 className="text-lg font-semibold mb-1">{event.eventName}</h3>
                       <div className="flex items-center gap-1 text-sm text-gray-600">
                         <MapPin className="w-4 h-4" />
-                        <span>{event.location}</span>
+                        <span>{event.streetAddress}</span>
+                        {event.streetAddress2 && <span>, {event.streetAddress2}</span>}
                       </div>
+                    </div>
+                    <div className="flex flex-col items-end gap-2">
+                      <span className={`px-3 py-1 rounded-full text-center text-sm font-medium ${getStatusColor(event.EventStatus)}`}>
+                        {event.EventStatus}
+                      </span>
+                      <span className="text-sm text-gray-500">#{event.eventCode}</span>
                     </div>
                   </div>
 
-                  <div className="flex gap-12 text-sm">
+                  <div className="grid grid-cols-3 gap-4 text-sm">
                     <div>
-                      <div className="text-gray-500 mb-1">Category</div>
+                      <div className="text-gray-500 mb-1">Event Date</div>
                       <div className="flex items-center gap-1">
                         <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                        <span>{event.category}</span>
+                        <span>{formatDate(event.eventDate)}</span>
                       </div>
                     </div>
                     <div>
-                      <div className="text-gray-500 mb-1">Earned</div>
+                      <div className="text-gray-500 mb-1">Start Time</div>
                       <div className="flex items-center gap-1">
                         <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                        <span>{event.earned}</span>
+                        <span>{event.startTime}</span>
                       </div>
                     </div>
                     <div>
-                      <div className="text-gray-500 mb-1">Deadline</div>
+                      <div className="text-gray-500 mb-1">Ticket Sales Start</div>
                       <div className="flex items-center gap-1">
                         <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                        <span>{event.deadline}</span>
+                        <span>{formatDate(event.ticketSaleStart)}</span>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <div className='flex flex-col gap-5'>
-                  <span className={`px-3 py-1 rounded-full text-center text-sm font-medium capitalize ${getStatusColor(event.status)}`}>
-                    {event.status}
-                  </span>
-
+                <div className='flex flex-col gap-5 justify-center'>
                   <button
-                    onClick={() => onEventClick(event)}
-                    className="bg-green-700 hover:bg-green-800 cursor-pointer text-white px-8 py-2 rounded-lg font-medium self-center"
+                    onClick={() => onEventClick(event._id)}
+                    className="bg-green-700 hover:bg-green-800 cursor-pointer text-white px-8 py-2 rounded-lg font-medium"
                   >
-                    Details
+                    View Details
                   </button>
                 </div>
               </div>
             </div>
-          ))}
-        </div>
+          ))
+        )}
+      </div>
 
+      {/* Pagination */}
+      {data?.meta && data.meta.totalPage > 1 && (
         <div className="flex justify-center items-center gap-2 mt-6">
-          <button className="px-4 py-2 border border-gray-300 rounded-lg text-gray-400 bg-gray-100">
+          <button
+            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+            disabled={currentPage === 1}
+            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+          >
             Previous
           </button>
-          {[1, 2, 3, 4, 5, 6, 7, 8].map((page) => (
-            <button
-              key={page}
-              onClick={() => setCurrentPage(page)}
-              className={`px-3 py-2 rounded-lg cursor-pointer  ${currentPage === page
-                ? 'bg-green-700 text-white'
-                : 'border border-gray-300 hover:bg-gray-50'
-                }`}
-            >
-              {page}
-            </button>
-          ))}
-          <button className="px-3 py-2 border border-gray-300 rounded-lg">...</button>
-          <button className="px-3 py-2 border border-gray-300 rounded-lg">25</button>
-          <button className="px-4 py-2 bg-green-700 text-white rounded-lg">
+
+          {Array.from({ length: Math.min(5, data.meta.totalPage) }, (_, i) => {
+            let pageNum;
+            if (data.meta.totalPage <= 5) {
+              pageNum = i + 1;
+            } else if (currentPage <= 3) {
+              pageNum = i + 1;
+            } else if (currentPage >= data.meta.totalPage - 2) {
+              pageNum = data.meta.totalPage - 4 + i;
+            } else {
+              pageNum = currentPage - 2 + i;
+            }
+
+            return (
+              <button
+                key={pageNum}
+                onClick={() => setCurrentPage(pageNum)}
+                className={`px-3 py-2 rounded-lg ${currentPage === pageNum
+                    ? 'bg-green-700 text-white'
+                    : 'border border-gray-300 hover:bg-gray-50'
+                  }`}
+              >
+                {pageNum}
+              </button>
+            );
+          })}
+
+          {data.meta.totalPage > 5 && currentPage < data.meta.totalPage - 2 && (
+            <>
+              <span className="px-2">...</span>
+              <button
+                onClick={() => setCurrentPage(data.meta.totalPage)}
+                className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+              >
+                {data.meta.totalPage}
+              </button>
+            </>
+          )}
+
+          <button
+            onClick={() => setCurrentPage(prev => Math.min(data.meta.totalPage, prev + 1))}
+            disabled={currentPage === data.meta.totalPage}
+            className="px-4 py-2 bg-green-700 text-white rounded-lg hover:bg-green-800 disabled:opacity-50"
+          >
             Next
           </button>
         </div>
-      </div>
+      )}
     </div>
   );
 }

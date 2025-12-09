@@ -5,6 +5,14 @@ import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
+interface IncomeRatioData {
+  year: number;
+  data: Array<{
+    month: string;
+    amount: number;
+  }>;
+}
+
 interface ChartData {
   month: string;
   value: number;
@@ -18,23 +26,24 @@ interface TooltipProps {
   }>;
 }
 
-function IncomeRatioChart() {
-  const [selectedYear, setSelectedYear] = useState("2024");
+interface IncomeRatioChartProps {
+  incomeRatioData?: IncomeRatioData;
+}
 
-  const data: ChartData[] = [
-    { month: "Jan", value: 5000 },
-    { month: "Feb", value: 3000 },
-    { month: "Mar", value: 9000 },
-    { month: "Apr", value: 9500 },
-    { month: "May", value: 9000 },
-    { month: "Jun", value: 9500 },
-    { month: "Jul", value: 9950 },
-    { month: "Aug", value: 5500 },
-    { month: "Sep", value: 3000 },
-    { month: "Oct", value: 9000 },
-    { month: "Nov", value: 9500 },
-    { month: "Dec", value: 9500 },
-  ];
+function IncomeRatioChart({ incomeRatioData }: IncomeRatioChartProps) {
+  const [selectedYear, setSelectedYear] = useState(
+    incomeRatioData?.year?.toString() || "2025"
+  );
+
+  // Transform API data to chart format
+  const transformData = (apiData: IncomeRatioData['data'] = []): ChartData[] => {
+    return apiData.map(item => ({
+      month: item.month,
+      value: item.amount
+    }));
+  };
+
+  const chartData = incomeRatioData ? transformData(incomeRatioData.data) : [];
 
   const CustomTooltip = ({ active, payload }: TooltipProps) => {
     if (active && payload && payload.length) {
@@ -52,6 +61,23 @@ function IncomeRatioChart() {
     return null;
   };
 
+  // Generate year options based on available data
+  const currentYear = new Date().getFullYear();
+  const yearOptions = Array.from(
+    { length: 5 },
+    (_, i) => (currentYear - i).toString()
+  );
+
+  // Calculate max value for Y-axis ticks
+  const maxValue = Math.max(...chartData.map(d => d.value));
+  const maxTick = Math.ceil(maxValue / 1000) * 1000;
+  const tickCount = 6;
+  const tickStep = maxTick / (tickCount - 1);
+  const ticks = Array.from(
+    { length: tickCount },
+    (_, i) => Math.round(i * tickStep)
+  );
+
   return (
     <Card className="border border-gray-200 shadow-sm">
       <CardHeader className="flex flex-row items-center justify-between pb-4 border-b border-gray-100">
@@ -63,16 +89,25 @@ function IncomeRatioChart() {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="2024">2024</SelectItem>
-            <SelectItem value="2023">2023</SelectItem>
-            <SelectItem value="2022">2022</SelectItem>
+            {yearOptions.map(year => (
+              <SelectItem key={year} value={year}>
+                {year}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </CardHeader>
       <CardContent className="pt-6">
         <ResponsiveContainer width="100%" height={280}>
-          <BarChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
+          <BarChart
+            data={chartData}
+            margin={{ top: 10, right: 10, left: -20, bottom: 5 }}
+          >
+            <CartesianGrid
+              strokeDasharray="3 3"
+              stroke="#f0f0f0"
+              vertical={false}
+            />
             <XAxis
               dataKey="month"
               axisLine={false}
@@ -83,13 +118,24 @@ function IncomeRatioChart() {
               axisLine={false}
               tickLine={false}
               tick={{ fill: "#9ca3af", fontSize: 12 }}
-              tickFormatter={(value) => `$${value / 1000}k`}
-              ticks={[0, 2000, 4000, 6000, 8000, 10000]}
+              tickFormatter={(value) => `$${value.toLocaleString()}`}
+              ticks={ticks}
             />
-            <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(0,0,0,0.05)" }} />
-            <Bar dataKey="value" radius={[4, 4, 0, 0]} maxBarSize={35}>
-              {data.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill="#7cb342" />
+            <Tooltip
+              content={<CustomTooltip />}
+              cursor={{ fill: "rgba(0,0,0,0.05)" }}
+            />
+            <Bar
+              dataKey="value"
+              radius={[4, 4, 0, 0]}
+              maxBarSize={35}
+              fill="#7cb342"
+            >
+              {chartData.map((entry, index) => (
+                <Cell
+                  key={`cell-${index}`}
+                  fill={entry.value > 0 ? "#7cb342" : "#e0e0e0"}
+                />
               ))}
             </Bar>
           </BarChart>

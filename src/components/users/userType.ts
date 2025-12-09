@@ -1,14 +1,31 @@
 export interface User {
-  id: string;
+  _id: string;
   accountNumber: string;
   name: string;
-  role: 'Attendee' | 'Organizer';
+  role: 'USER' | 'ADMIN' | 'ORGANIZER' | 'Attendee' | 'Organizer';
   email: string;
   dob: string;
   phone: string;
   location: string;
   joinDate: string;
   avatar: string;
+  status: string;
+  verified: boolean;
+  // Additional fields from API
+  personalInfo?: {
+    phone?: string;
+    dateOfBirth?: string;
+    firstName?: string;
+    lastName?: string;
+  };
+  address?: {
+    city?: string;
+    street?: string;
+    country?: string;
+    postalCode?: string;
+  };
+  sellAmount?: number;
+  withDrawAmount?: number;
   // Attendee specific fields
   totalTicketsSold?: number;
   totalSpend?: string;

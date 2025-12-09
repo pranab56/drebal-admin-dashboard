@@ -11,27 +11,38 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useState } from 'react';
 import TipTapEditor from '../../../TipTapEditor/TipTapEditor';
 import { BaseModalProps, FAQ } from '../settingsType';
 
 interface AddFAQModalProps extends BaseModalProps {
-  onAdd: (faq: Omit<FAQ, 'id'>) => void;
+  onAdd: (faq: Omit<FAQ, '_id' | 'createdAt' | 'updatedAt' | 'type'>, faqType: 'user' | 'vanue') => void;
+  currentTab: 'user' | 'vanue';
 }
 
-export const AddFAQModal = ({ onClose, onAdd }: AddFAQModalProps) => {
+export const AddFAQModal = ({ onClose, onAdd, currentTab }: AddFAQModalProps) => {
   const [question, setQuestion] = useState('');
-  const [answer, setAnswer] = useState('<p>Provide a detailed answer...</p>');
+  const [answer, setAnswer] = useState('');
+  const [faqType, setFaqType] = useState<'user' | 'vanue'>(currentTab);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState({
     question: '',
-    answer: ''
+    answer: '',
+    faqType: ''
   });
 
   const validateForm = (): boolean => {
     const newErrors = {
       question: '',
-      answer: ''
+      answer: '',
+      faqType: ''
     };
 
     // Question validation
@@ -49,8 +60,13 @@ export const AddFAQModal = ({ onClose, onAdd }: AddFAQModalProps) => {
       newErrors.answer = 'Answer must be at least 10 characters long';
     }
 
+    // FAQ Type validation
+    if (!faqType) {
+      newErrors.faqType = 'Please select FAQ type';
+    }
+
     setErrors(newErrors);
-    return !newErrors.question && !newErrors.answer;
+    return !newErrors.question && !newErrors.answer && !newErrors.faqType;
   };
 
   const handleSubmit = async () => {
@@ -61,24 +77,20 @@ export const AddFAQModal = ({ onClose, onAdd }: AddFAQModalProps) => {
     setIsLoading(true);
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
       onAdd({
         question: question.trim(),
         answer
-      });
+      }, faqType);
+      // Note: The modal will be closed by the parent component after successful creation
     } catch (error) {
       console.error('Error adding FAQ:', error);
       alert('Failed to add FAQ. Please try again.');
-    } finally {
       setIsLoading(false);
     }
   };
 
   const handleQuestionChange = (value: string) => {
     setQuestion(value);
-    // Clear error when user starts typing
     if (errors.question) {
       setErrors(prev => ({ ...prev, question: '' }));
     }
@@ -86,9 +98,15 @@ export const AddFAQModal = ({ onClose, onAdd }: AddFAQModalProps) => {
 
   const handleAnswerChange = (newAnswer: string) => {
     setAnswer(newAnswer);
-    // Clear error when user starts typing
     if (errors.answer) {
       setErrors(prev => ({ ...prev, answer: '' }));
+    }
+  };
+
+  const handleTypeChange = (value: 'user' | 'vanue') => {
+    setFaqType(value);
+    if (errors.faqType) {
+      setErrors(prev => ({ ...prev, faqType: '' }));
     }
   };
 
@@ -99,7 +117,8 @@ export const AddFAQModal = ({ onClose, onAdd }: AddFAQModalProps) => {
 
   const isFormValid = question.trim().length >= 5 &&
     !isAnswerEmpty(answer) &&
-    answer.replace(/<[^>]*>/g, '').trim().length >= 10;
+    answer.replace(/<[^>]*>/g, '').trim().length >= 10 &&
+    faqType;
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
@@ -112,9 +131,32 @@ export const AddFAQModal = ({ onClose, onAdd }: AddFAQModalProps) => {
         </DialogHeader>
 
         <div className="space-y-6">
+          {/* FAQ Type Selection */}
+          <div className="space-y-2">
+            <Label htmlFor="faqType" className="text-sm font-semibold">
+              FAQ Type *
+            </Label>
+            <Select value={faqType} onValueChange={handleTypeChange}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select FAQ type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="user">User FAQ</SelectItem>
+                <SelectItem value="vanue">Venue FAQ</SelectItem>
+              </SelectContent>
+            </Select>
+            {errors.faqType && (
+              <p className="text-sm text-destructive">{errors.faqType}</p>
+            )}
+            <p className="text-xs text-muted-foreground">
+              Select whether this FAQ is for users or venues
+            </p>
+          </div>
+
+          {/* Question Input */}
           <div className="space-y-2">
             <Label htmlFor="question" className="text-sm font-semibold">
-              FAQ Question
+              FAQ Question *
             </Label>
             <Input
               id="question"
@@ -132,9 +174,10 @@ export const AddFAQModal = ({ onClose, onAdd }: AddFAQModalProps) => {
             </p>
           </div>
 
+          {/* Answer Editor */}
           <div className="space-y-2">
             <Label htmlFor="answer" className="text-sm font-semibold">
-              Answer
+              Answer *
             </Label>
             <TipTapEditor
               content={answer}
@@ -144,6 +187,9 @@ export const AddFAQModal = ({ onClose, onAdd }: AddFAQModalProps) => {
             {errors.answer && (
               <p className="text-sm text-destructive">{errors.answer}</p>
             )}
+            <p className="text-xs text-muted-foreground">
+              Provide a detailed answer with formatting if needed
+            </p>
           </div>
         </div>
 
@@ -153,6 +199,7 @@ export const AddFAQModal = ({ onClose, onAdd }: AddFAQModalProps) => {
             variant="outline"
             onClick={onClose}
             className="flex-1"
+            disabled={isLoading}
           >
             Cancel
           </Button>

@@ -2,8 +2,10 @@
 
 import { ArrowLeft, Eye, EyeOff, Lock } from 'lucide-react';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
+import toast from 'react-hot-toast';
+import { useResetPasswordMutation } from '../../../../features/auth/authApi';
 
 export default function ResetPasswordPage() {
   const [newPassword, setNewPassword] = useState<string>('');
@@ -14,8 +16,12 @@ export default function ResetPasswordPage() {
     newPassword: '',
     confirmPassword: ''
   });
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  const searchParams = useSearchParams();
+  const token = searchParams.get("token");
+
   const router = useRouter();
+  const [resetPassword, { isLoading: isLoadingReset }] = useResetPasswordMutation();
 
   const validatePassword = (password: string): string => {
     if (!password) {
@@ -36,7 +42,7 @@ export default function ResetPasswordPage() {
     return '';
   };
 
-  const handleSubmit = (): void => {
+  const handleSubmit = async (): void => {
     const newErrors = { newPassword: '', confirmPassword: '' };
 
     const passwordError = validatePassword(newPassword);
@@ -51,17 +57,22 @@ export default function ResetPasswordPage() {
     }
 
     setErrors(newErrors);
-
-    if (!newErrors.newPassword && !newErrors.confirmPassword) {
-      setIsLoading(true);
-
-      setTimeout(() => {
-        setIsLoading(false);
-        alert('Password has been changed successfully!');
-        router.push('/auth/login');
-      }, 1500);
+    console.log("new password", newPassword)
+    console.log("confrim password", confirmPassword)
+    try {
+      const data = { newPassword: newPassword, confirmPassword: confirmPassword, token: token };
+      const response = await resetPassword(data).unwrap();
+      console.log(response)
+      toast.success(response.message || 'Successfully logged in.');
+      router.push('/auth/login');
+    } catch (error) {
+      console.log(error)
+      toast.error(error?.data?.message || 'Failed to verify OTP. Please try again.');
     }
-  };
+
+
+  }
+
 
   const handleBack = (): void => {
     router.push('/auth/verify-email');
@@ -164,10 +175,10 @@ export default function ResetPasswordPage() {
               <button
                 type="button"
                 onClick={handleSubmit}
-                disabled={isLoading}
+                disabled={isLoadingReset}
                 className="w-full bg-green-600 hover:bg-green-700 cursor-pointer text-white font-semibold py-3 px-4 rounded-xl transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isLoading ? 'Resetting...' : 'Reset Password'}
+                {isLoadingReset ? 'Resetting...' : 'Reset Password'}
               </button>
             </div>
           </div>

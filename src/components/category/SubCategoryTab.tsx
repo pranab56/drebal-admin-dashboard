@@ -10,39 +10,92 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-
 import { Edit, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
-
-import DeleteConfirmationModal from './DeleteConfirmationModal';
-
+import {
+  useCreateSubCategoryMutation,
+  useDeleteSubCategoryMutation,
+  useEditSubCategoryMutation
+} from '../../features/subCategory/subCategoryApi';
 import AddSubCategoryModal from './AddSubCategoryModal';
+import DeleteConfirmationModal from './DeleteConfirmationModal';
 import EditSubCategoryModal from './EditSubCategoryModal';
 import { Category, SubCategory } from './types/category';
 
 interface SubCategoryTabProps {
   categories: Category[];
   subCategories: SubCategory[];
-  onAddSubCategory: (subCategory: Omit<SubCategory, 'id' | 'createdAt'>) => void;
-  onEditSubCategory: (subCategory: SubCategory) => void;
-  onDeleteSubCategory: (id: number) => void;
+  onRefetch: () => void;
 }
 
 const SubCategoryTab: React.FC<SubCategoryTabProps> = ({
   categories,
   subCategories,
-  onAddSubCategory,
-  onEditSubCategory,
-  onDeleteSubCategory,
+  onRefetch,
 }) => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedSubCategory, setSelectedSubCategory] = useState<SubCategory | null>(null);
 
+  const [createSubCategory, { isLoading: isCreating }] = useCreateSubCategoryMutation();
+  const [editSubCategory, { isLoading: isEditing }] = useEditSubCategoryMutation();
+  const [deleteSubCategory, { isLoading: isDeleting }] = useDeleteSubCategoryMutation();
+
+  const handleAddSubCategory = async (subCategoryData: any) => {
+    try {
+      const formData = new FormData();
+      formData.append('title', subCategoryData.name);
+      if (subCategoryData.description) {
+        formData.append('description', subCategoryData.description);
+      }
+      formData.append('categoryId', subCategoryData.categoryId);
+
+      if (subCategoryData.imageFile) {
+        formData.append('coverImage', subCategoryData.imageFile);
+      }
+
+      await createSubCategory(formData).unwrap();
+      onRefetch();
+      setIsAddModalOpen(false);
+    } catch (error) {
+      console.error('Error adding sub category:', error);
+      alert('Error adding sub category');
+    }
+  };
+
   const handleEdit = (subCategory: SubCategory) => {
     setSelectedSubCategory(subCategory);
     setIsEditModalOpen(true);
+  };
+
+  const handleSaveSubCategory = async (subCategoryData: any) => {
+    if (!selectedSubCategory) return;
+
+    try {
+      const formData = new FormData();
+      formData.append('title', subCategoryData.name);
+      if (subCategoryData.description) {
+        formData.append('description', subCategoryData.description);
+      }
+      formData.append('categoryId', subCategoryData.categoryId);
+
+      if (subCategoryData.imageFile) {
+        formData.append('coverImage', subCategoryData.imageFile);
+      }
+
+      await editSubCategory({
+        id: selectedSubCategory._id,
+        data: formData
+      }).unwrap();
+
+      onRefetch();
+      setIsEditModalOpen(false);
+      setSelectedSubCategory(null);
+    } catch (error) {
+      console.error('Error updating sub category:', error);
+      alert('Error updating sub category');
+    }
   };
 
   const handleDelete = (subCategory: SubCategory) => {
@@ -50,11 +103,21 @@ const SubCategoryTab: React.FC<SubCategoryTabProps> = ({
     setIsDeleteModalOpen(true);
   };
 
-  const handleConfirmDelete = () => {
-    if (selectedSubCategory) {
-      onDeleteSubCategory(selectedSubCategory.id);
+  const handleConfirmDelete = async () => {
+    if (!selectedSubCategory) return;
+
+    try {
+      await deleteSubCategory({
+        subcategoryId: selectedSubCategory._id,
+        type: 'subcategory'
+      }).unwrap();
+
+      onRefetch();
       setIsDeleteModalOpen(false);
       setSelectedSubCategory(null);
+    } catch (error) {
+      console.error('Error deleting sub category:', error);
+      alert('Error deleting sub category');
     }
   };
 
@@ -62,9 +125,13 @@ const SubCategoryTab: React.FC<SubCategoryTabProps> = ({
     <div>
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-semibold">All Sub Categories</h2>
-        <Button onClick={() => setIsAddModalOpen(true)} className="bg-green-600 hover:bg-green-700">
+        <Button
+          onClick={() => setIsAddModalOpen(true)}
+          className="bg-green-600 hover:bg-green-700"
+          disabled={isCreating}
+        >
           <Plus className="w-4 h-4 mr-2" />
-          Add Sub Category
+          {isCreating ? 'Adding...' : 'Add Sub Category'}
         </Button>
       </div>
 
@@ -82,23 +149,23 @@ const SubCategoryTab: React.FC<SubCategoryTabProps> = ({
           </TableHeader>
           <TableBody>
             {subCategories.map((subCategory) => (
-              <TableRow key={subCategory.id}>
+              <TableRow key={subCategory._id}>
                 <TableCell>
                   <img
-                    src={subCategory.image}
-                    alt={subCategory.name}
+                    src={subCategory.coverImage}
+                    alt={subCategory.title}
                     className="w-12 h-12 rounded-lg object-cover"
                   />
                 </TableCell>
-                <TableCell className="font-medium">{subCategory.name}</TableCell>
-                <TableCell>{subCategory.categoryName}</TableCell>
+                <TableCell className="font-medium">{subCategory.title}</TableCell>
+                <TableCell>{subCategory.categoryTitle}</TableCell>
                 <TableCell>
                   {subCategory.description || (
                     <span className="text-gray-400">No description</span>
                   )}
                 </TableCell>
                 <TableCell>
-                  {subCategory.createdAt.toLocaleDateString()}
+                  {new Date(subCategory.createdAt).toLocaleDateString()}
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
@@ -106,6 +173,7 @@ const SubCategoryTab: React.FC<SubCategoryTabProps> = ({
                       variant="outline"
                       size="sm"
                       onClick={() => handleEdit(subCategory)}
+                      disabled={isEditing}
                     >
                       <Edit className="w-4 h-4" />
                     </Button>
@@ -114,6 +182,7 @@ const SubCategoryTab: React.FC<SubCategoryTabProps> = ({
                       size="sm"
                       onClick={() => handleDelete(subCategory)}
                       className="text-red-600 hover:text-red-700"
+                      disabled={isDeleting}
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>
@@ -123,14 +192,20 @@ const SubCategoryTab: React.FC<SubCategoryTabProps> = ({
             ))}
           </TableBody>
         </Table>
+
+        {subCategories.length === 0 && (
+          <div className="text-center py-8 text-gray-500">
+            No sub categories found
+          </div>
+        )}
       </div>
 
-      {/* Modals */}
       <AddSubCategoryModal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
-        onAdd={onAddSubCategory}
+        onAdd={handleAddSubCategory}
         categories={categories}
+        isLoading={isCreating}
       />
 
       <EditSubCategoryModal
@@ -139,9 +214,10 @@ const SubCategoryTab: React.FC<SubCategoryTabProps> = ({
           setIsEditModalOpen(false);
           setSelectedSubCategory(null);
         }}
-        onSave={onEditSubCategory}
+        onSave={handleSaveSubCategory}
         subCategory={selectedSubCategory}
         categories={categories}
+        isLoading={isEditing}
       />
 
       <DeleteConfirmationModal
@@ -153,6 +229,7 @@ const SubCategoryTab: React.FC<SubCategoryTabProps> = ({
         onConfirm={handleConfirmDelete}
         title="Delete Sub Category"
         description="Are you sure you want to delete this sub category? This action cannot be undone."
+        isLoading={isDeleting}
       />
     </div>
   );

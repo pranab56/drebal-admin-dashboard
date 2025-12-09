@@ -17,6 +17,7 @@ interface DeleteConfirmationModalProps {
   onConfirm: () => void;
   title?: string;
   description?: string;
+  isLoading?: boolean;
 }
 
 const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = ({
@@ -24,7 +25,8 @@ const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = ({
   onClose,
   onConfirm,
   title = "Delete Item",
-  description = "Are you sure you want to delete this item? This action cannot be undone."
+  description = "Are you sure you want to delete this item? This action cannot be undone.",
+  isLoading = false
 }) => {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -36,11 +38,12 @@ const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = ({
           </DialogDescription>
         </DialogHeader>
 
-        <DialogFooter className="flex gap-3 sm:gap-0">
+        <DialogFooter className="flex gap-3 sm:gap-3">
           <Button
             type="button"
             variant="outline"
             onClick={onClose}
+            disabled={isLoading}
           >
             Cancel
           </Button>
@@ -48,8 +51,9 @@ const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = ({
             type="button"
             variant="destructive"
             onClick={onConfirm}
+            disabled={isLoading}
           >
-            Delete
+            {isLoading ? 'Deleting...' : 'Delete'}
           </Button>
         </DialogFooter>
       </DialogContent>

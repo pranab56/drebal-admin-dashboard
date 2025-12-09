@@ -4,20 +4,21 @@ import { ArrowLeft, Mail } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import toast from 'react-hot-toast';
+import { useForgotEmailMutation } from '../../../../features/auth/authApi';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState<string>('');
   const [error, setError] = useState<string>('');
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [isSuccess, setIsSuccess] = useState<boolean>(false);
   const router = useRouter();
+  const [forgotPassword, { isLoading: isForgotLoading }] = useForgotEmailMutation();
 
   const validateEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
   };
 
-  const handleSubmit = (): void => {
+  const handleSubmit = async (): void => {
     setError('');
 
     if (!email) {
@@ -30,14 +31,17 @@ export default function ForgotPasswordPage() {
       return;
     }
 
-    setIsLoading(true);
+    try {
+      const response = await forgotPassword({ email: email }).unwrap();
+      console.log(response)
+      toast.success(response.message || 'Verification code sent successfully.');
+      router.push('/auth/verify-email?email=' + email);
+    } catch (error) {
+      console.log(error)
+      toast.error(error?.data?.message || 'Failed to send verification code. Please try again.');
+    }
 
-    setTimeout(() => {
-      setIsLoading(false);
-      setIsSuccess(true);
-      alert(`Verification code has been sent to ${email}`);
-      router.push('/auth/verify-email');
-    }, 1500);
+
   };
 
   const handleBack = (): void => {
@@ -103,10 +107,10 @@ export default function ForgotPasswordPage() {
               <button
                 type="button"
                 onClick={handleSubmit}
-                disabled={isLoading || isSuccess}
+                disabled={isForgotLoading}
                 className="w-full bg-green-600 hover:bg-green-700 cursor-pointer text-white font-semibold py-3 px-4 rounded-xl transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isLoading ? 'Sending...' : isSuccess ? 'Code Sent!' : 'Send verification code'}
+                {isForgotLoading ? 'Sending...' : 'Code Sent!'}
               </button>
             </div>
           </div>

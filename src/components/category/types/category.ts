@@ -1,20 +1,23 @@
 // types/category.ts
 export interface Category {
-  id: number;
-  name: string;
+  _id: string;
+  userId: string;
+  title: string;
+  coverImage: string;
   description?: string;
-  image: string;
-  createdAt: Date;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface SubCategory {
-  id: number;
-  name: string;
+  _id: string;
+  categoryTitle: string;
+  title: string;
+  coverImage: string;
   description?: string;
-  image: string;
-  categoryId: number;
-  categoryName: string;
-  createdAt: Date;
+  categoryId: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface CategoryOption {

@@ -10,51 +10,34 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Upload, X } from 'lucide-react';
 import { useState } from 'react';
-import { Category } from './types/category';
 
 interface AddCategoryModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAdd: (category: Omit<Category, 'id' | 'createdAt'>) => void;
+  onAdd: (categoryData: FormData) => void; // Changed to accept FormData
+  isLoading?: boolean;
 }
 
 const AddCategoryModal: React.FC<AddCategoryModalProps> = ({
   isOpen,
   onClose,
   onAdd,
+  isLoading = false,
 }) => {
   const [formData, setFormData] = useState({
     name: '',
-    description: '',
-    image: '' // This will store the base64 string or file object
+    image: null as File | null
   });
-  const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
 
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.image) {
-      alert('Please upload an image');
-      return;
-    }
+    onAdd(formData);
 
-    setIsLoading(true);
-
-    try {
-      // If you're using base64, you can send it directly
-      // If you're uploading to a server, you might need to convert to FormData
-      await onAdd(formData);
-      setFormData({ name: '', description: '', image: '' });
-      onClose();
-    } catch (error) {
-      console.error('Error adding category:', error);
-    } finally {
-      setIsLoading(false);
-    }
   };
 
   const handleImageUpload = async (file: File) => {
@@ -63,7 +46,7 @@ const AddCategoryModal: React.FC<AddCategoryModalProps> = ({
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+    if (file.size > 5 * 1024 * 1024) {
       alert('File size should be less than 5MB');
       return;
     }
@@ -71,46 +54,14 @@ const AddCategoryModal: React.FC<AddCategoryModalProps> = ({
     setIsUploading(true);
 
     try {
-      // Option 1: Convert to base64 (for smaller files or if your backend accepts base64)
-      const base64 = await convertToBase64(file);
-      setFormData(prev => ({ ...prev, image: base64 as string }));
-
-      // Option 2: If you want to upload to a server first
-      // const imageUrl = await uploadToServer(file);
-      // setFormData(prev => ({ ...prev, image: imageUrl }));
+      // Store the File object directly
+      setFormData(prev => ({ ...prev, image: file }));
     } catch (error) {
       console.error('Error uploading image:', error);
       alert('Error uploading image');
     } finally {
       setIsUploading(false);
     }
-  };
-
-  const convertToBase64 = (file: File): Promise<string | ArrayBuffer> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = error => reject(error);
-    });
-  };
-
-  // If you have an actual upload endpoint
-  const uploadToServer = async (file: File): Promise<string> => {
-    const formData = new FormData();
-    formData.append('image', file);
-
-    const response = await fetch('/api/upload', {
-      method: 'POST',
-      body: formData,
-    });
-
-    if (!response.ok) {
-      throw new Error('Upload failed');
-    }
-
-    const data = await response.json();
-    return data.imageUrl;
   };
 
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -137,18 +88,26 @@ const AddCategoryModal: React.FC<AddCategoryModalProps> = ({
 
     const files = e.dataTransfer.files;
     if (files && files[0]) {
-      handleImageUpload(files[0]);
+      const file = files[0];
+      handleImageUpload(file);
     }
   };
 
   const removeImage = () => {
-    setFormData(prev => ({ ...prev, image: '' }));
+    setFormData(prev => ({ ...prev, image: null }));
   };
 
   const handleClose = () => {
-    setFormData({ name: '', description: '', image: '' });
+    setFormData({ name: '', image: null });
     setDragActive(false);
     onClose();
+  };
+
+  const getImagePreview = () => {
+    if (formData.image) {
+      return URL.createObjectURL(formData.image);
+    }
+    return '';
   };
 
   return (
@@ -171,24 +130,13 @@ const AddCategoryModal: React.FC<AddCategoryModalProps> = ({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
-            <Textarea
-              id="description"
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              placeholder="Enter category description"
-              rows={3}
-            />
-          </div>
-
-          <div className="space-y-2">
             <Label htmlFor="image">Category Image</Label>
 
             {!formData.image ? (
               <div
                 className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${dragActive
-                    ? 'border-blue-500 bg-blue-50'
-                    : 'border-gray-300 hover:border-gray-400'
+                  ? 'border-blue-500 bg-blue-50'
+                  : 'border-gray-300 hover:border-gray-400'
                   } ${isUploading ? 'opacity-50' : ''}`}
                 onDragEnter={handleDrag}
                 onDragLeave={handleDrag}
@@ -215,7 +163,7 @@ const AddCategoryModal: React.FC<AddCategoryModalProps> = ({
             ) : (
               <div className="relative">
                 <img
-                  src={formData.image}
+                  src={getImagePreview()}
                   alt="Preview"
                   className="w-full h-48 object-cover rounded-lg"
                 />

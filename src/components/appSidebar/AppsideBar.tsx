@@ -35,6 +35,9 @@ const sidebars: SidebarItem[] = [
   { name: "Categories&SubCategories", path: "/Categories&SubCategories", icon: FolderOpen },
   // { name: "Re - Sell Tickets", path: "/re-sell-tickets", icon: Ticket },
   { name: "Settings", path: "/settings", icon: Settings },
+  { name: "Support", path: "/support", icon: Settings },
+  { name: "Notifications", path: "/notifications", icon: Settings },
+  { name: "Account Delete History", path: "/history", icon: Settings },
 ];
 
 export default function MainlandSidebar() {

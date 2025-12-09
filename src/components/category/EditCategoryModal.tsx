@@ -10,16 +10,17 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Upload, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { baseURL } from '../../../utils/BaseURL';
 import { Category } from './types/category';
 
 interface EditCategoryModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (category: Category & { imageFile?: File }) => void;
+  onSave: (category: any) => void;
   category: Category | null;
+  isLoading?: boolean;
 }
 
 const EditCategoryModal: React.FC<EditCategoryModalProps> = ({
@@ -27,25 +28,22 @@ const EditCategoryModal: React.FC<EditCategoryModalProps> = ({
   onClose,
   onSave,
   category,
+  isLoading = false,
 }) => {
   const [formData, setFormData] = useState({
     name: '',
-    description: '',
     image: ''
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [dragActive, setDragActive] = useState(false);
 
   useEffect(() => {
     if (category) {
       setFormData({
-        name: category.name,
-        description: category.description || '',
-        image: category.image
+        name: category.title,
+        image: category.coverImage || ''
       });
-      setImageFile(null); // Reset file when category changes
+      setImageFile(null);
     }
   }, [category]);
 
@@ -53,24 +51,15 @@ const EditCategoryModal: React.FC<EditCategoryModalProps> = ({
     e.preventDefault();
     if (!category) return;
 
-    setIsLoading(true);
+    // Expected console.log output
+    const data = { title: formData.name, image: imageFile }
 
-    try {
-      const updatedCategory = {
-        ...category,
-        name: formData.name,
-        description: formData.description,
-        image: imageFile ? URL.createObjectURL(imageFile) : formData.image,
-        ...(imageFile && { imageFile }) // Only include if new file is uploaded
-      };
+    // const submitData = {
+    //   title: formData.name,
+    //   imageFile: imageFile
+    // };
 
-      await onSave(updatedCategory);
-      onClose();
-    } catch (error) {
-      console.error('Error updating category:', error);
-    } finally {
-      setIsLoading(false);
-    }
+    await onSave(data);
   };
 
   const handleImageUpload = (file: File) => {
@@ -79,24 +68,14 @@ const EditCategoryModal: React.FC<EditCategoryModalProps> = ({
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+    if (file.size > 5 * 1024 * 1024) {
       alert('File size should be less than 5MB');
       return;
     }
 
     setImageFile(file);
-    // Create preview URL
     const previewUrl = URL.createObjectURL(file);
     setFormData(prev => ({ ...prev, image: previewUrl }));
-  };
-
-  const convertToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = error => reject(error);
-    });
   };
 
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -106,36 +85,15 @@ const EditCategoryModal: React.FC<EditCategoryModalProps> = ({
     }
   };
 
-  const handleDrag = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.type === "dragenter" || e.type === "dragover") {
-      setDragActive(true);
-    } else if (e.type === "dragleave") {
-      setDragActive(false);
-    }
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-
-    const files = e.dataTransfer.files;
-    if (files && files[0]) {
-      handleImageUpload(files[0]);
-    }
-  };
-
   const removeImage = () => {
     if (imageFile) {
-      // Remove newly uploaded image, revert to original
+      // If there's a new file, revert to original image
       setImageFile(null);
       if (category) {
-        setFormData(prev => ({ ...prev, image: category.image }));
+        setFormData(prev => ({ ...prev, image: category.coverImage || '' }));
       }
     } else {
-      // Remove existing image
+      // If removing original image
       setFormData(prev => ({ ...prev, image: '' }));
     }
   };
@@ -143,17 +101,15 @@ const EditCategoryModal: React.FC<EditCategoryModalProps> = ({
   const handleClose = () => {
     if (category) {
       setFormData({
-        name: category.name,
-        description: category.description || '',
-        image: category.image
+        name: category.title,
+        image: category.coverImage || ''
       });
     }
     setImageFile(null);
-    setDragActive(false);
     onClose();
   };
 
-  const hasImageChanged = imageFile !== null || formData.image !== category?.image;
+  const hasImageChanged = imageFile !== null;
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -175,29 +131,12 @@ const EditCategoryModal: React.FC<EditCategoryModalProps> = ({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="edit-description">Description</Label>
-            <Textarea
-              id="edit-description"
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              placeholder="Enter category description"
-              rows={3}
-            />
-          </div>
-
-          <div className="space-y-2">
             <Label htmlFor="edit-image">Category Image</Label>
 
             {!formData.image ? (
               <div
-                className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${dragActive
-                    ? 'border-blue-500 bg-blue-50'
-                    : 'border-gray-300 hover:border-gray-400'
+                className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${'border-gray-300 hover:border-gray-400'
                   } ${isUploading ? 'opacity-50' : ''}`}
-                onDragEnter={handleDrag}
-                onDragLeave={handleDrag}
-                onDragOver={handleDrag}
-                onDrop={handleDrop}
                 onClick={() => document.getElementById('edit-file-input')?.click()}
               >
                 <input
@@ -219,7 +158,7 @@ const EditCategoryModal: React.FC<EditCategoryModalProps> = ({
             ) : (
               <div className="relative">
                 <img
-                  src={formData.image}
+                  src={formData.image.startsWith('blob:') ? formData.image : baseURL + formData.image}
                   alt="Preview"
                   className="w-full h-48 object-cover rounded-lg"
                 />

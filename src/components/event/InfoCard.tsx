@@ -1,14 +1,14 @@
-import { InfoCardProps } from './eventType';
-
+// components/event/InfoCard.tsx
+interface InfoCardProps {
+  label: string;
+  value: string;
+}
 
 export default function InfoCard({ label, value }: InfoCardProps) {
   return (
-    <div>
-      <div className="flex items-center gap-1 text-sm text-gray-700  mb-1">
-        <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-        <span className="font-medium">{label}</span>
-      </div>
-      <div className="text-sm text-gray-600 pl-3">{value}</div>
+    <div className="bg-gray-50 rounded-lg p-3">
+      <div className="text-xs text-gray-500 mb-1">{label}</div>
+      <div className="text-sm font-medium text-gray-900">{value}</div>
     </div>
   );
 }

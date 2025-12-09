@@ -17,13 +17,16 @@ import {
 } from "@/components/ui/select";
 import { format } from "date-fns";
 import { CalendarIcon, Search } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import ConfirmationDialog from '../../../components/users/ConfirmationDialog';
 import Pagination from '../../../components/users/Pagination';
-import { eventActivities, ticketActivities, users } from '../../../components/users/userData';
+import { eventActivities, ticketActivities } from '../../../components/users/userData';
 import UserDetailsModal from '../../../components/users/UserDetailsModal';
 import UserTable from '../../../components/users/UserTable';
 import { User } from '../../../components/users/userType';
+import { useGetAllUserQuery } from '../../../features/users/usersApi';
+import { mapApiUserToFrontend } from '../../../../utils/userDataMapper';
+
 
 export default function MainlandUserList() {
   const [selectedRole, setSelectedRole] = useState("All");
@@ -35,6 +38,38 @@ export default function MainlandUserList() {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [showReportDialog, setShowReportDialog] = useState(false);
   const [showBlockDialog, setShowBlockDialog] = useState(false);
+  const [users, setUsers] = useState<User[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
+
+  const { data, isLoading, isError } = useGetAllUserQuery({});
+
+  useEffect(() => {
+    if (data?.data) {
+      const mappedUsers = data.data.map((apiUser: any) => 
+        mapApiUserToFrontend(apiUser)
+      );
+      setUsers(mappedUsers);
+      setFilteredUsers(mappedUsers);
+    }
+  }, [data]);
+
+  useEffect(() => {
+    if (users.length > 0) {
+      const filtered = users.filter((user) => {
+        const matchesRole = selectedRole === "All" || 
+          (selectedRole === "Organizer" && user.role === "Organizer") ||
+          (selectedRole === "Attendee" && user.role === "Attendee");
+        
+        const matchesSearch = 
+          user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          user.email.toLowerCase().includes(searchQuery.toLowerCase());
+        
+        return matchesRole && matchesSearch;
+      });
+      setFilteredUsers(filtered);
+      setCurrentPage(1); // Reset to first page when filters change
+    }
+  }, [selectedRole, searchQuery, users]);
 
   const handleViewUser = (user: User) => {
     setSelectedUser(user);
@@ -48,29 +83,43 @@ export default function MainlandUserList() {
 
   const handleReport = () => {
     setShowReportDialog(false);
-    console.log("User reported");
+    console.log("User reported:", selectedUser?.name);
     // Add report logic here
   };
 
   const handleBlock = () => {
     setShowBlockDialog(false);
-    console.log("User blocked");
+    console.log("User blocked:", selectedUser?.name);
     // Add block logic here
   };
-
-  // Filter users based on role and search query
-  const filteredUsers = users.filter((user) => {
-    const matchesRole = selectedRole === "All" || user.role === selectedRole;
-    const matchesSearch = user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesRole && matchesSearch;
-  });
 
   // Paginate users
   const paginatedUsers = filteredUsers.slice(
     (currentPage - 1) * rowsPerPage,
     currentPage * rowsPerPage
   );
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading users...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="text-red-600 text-4xl mb-4">⚠️</div>
+          <p className="text-gray-600">Error loading users. Please try again.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 ">

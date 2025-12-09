@@ -2,15 +2,19 @@
 
 import { ArrowLeft } from 'lucide-react';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useRef, useState } from 'react';
+import toast from 'react-hot-toast';
+import { useVerifyOTPMutation } from '../../../../features/auth/authApi';
 
 export default function VerifyOTPPage() {
   const [otp, setOtp] = useState<string[]>(['', '', '', '', '', '']);
   const [error, setError] = useState<string>('');
-  const [isLoading, setIsLoading] = useState<boolean>(false);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const email = searchParams.get("email");
+  const [VerifyEmail, { isLoading: isVerifyLoading }] = useVerifyOTPMutation();
 
   const setInputRef = (index: number) => (el: HTMLInputElement | null) => {
     inputRefs.current[index] = el;
@@ -48,7 +52,7 @@ export default function VerifyOTPPage() {
     inputRefs.current[nextIndex]?.focus();
   };
 
-  const handleSubmit = (): void => {
+  const handleSubmit = async (): void => {
     setError('');
 
     const otpValue = otp.join('');
@@ -58,13 +62,19 @@ export default function VerifyOTPPage() {
       return;
     }
 
-    setIsLoading(true);
 
-    setTimeout(() => {
-      setIsLoading(false);
-      alert(`Verification code ${otpValue} has been verified successfully!`);
-      router.push('/auth/reset-password');
-    }, 1500);
+
+    try {
+      const response = await VerifyEmail({ email: email, oneTimeCode: parseInt(otpValue) }).unwrap();
+      console.log(response)
+      toast.success(response.message || 'Successfully logged in.');
+      router.push(`/auth/reset-password?token=${response.data}`);
+    } catch (error) {
+      console.log(error)
+      toast.error(error?.data?.message || 'Failed to verify OTP. Please try again.');
+    }
+
+
   };
 
   const handleResend = (): void => {
@@ -137,10 +147,10 @@ export default function VerifyOTPPage() {
               <button
                 type="button"
                 onClick={handleSubmit}
-                disabled={isLoading}
+                disabled={isVerifyLoading}
                 className="w-full bg-green-600 hover:bg-green-700 cursor-pointer text-white font-semibold py-3 px-4 rounded-xl transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isLoading ? 'Verifying...' : 'Verify'}
+                {isVerifyLoading ? 'Verifying...' : 'Verify'}
               </button>
 
               {/* Resend Link */}

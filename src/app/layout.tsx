@@ -1,8 +1,7 @@
-import { SocketProvider } from "@/contexts/SocketContext";
-import ReduxProvider from "@/redux/Provider";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { Toaster } from "sonner";
+import { Toaster } from "react-hot-toast";
+import ClientLayout from './ClientLayout';
 import "./globals.css";
 
 const geistSans = Geist({
@@ -43,17 +42,10 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable}   antialiased h-screen`}
       >
-        <ReduxProvider>
-          <SocketProvider>
-            {children}
-            <Toaster
-              position="top-right"
-              expand={true}
-              richColors={true}
-              closeButton={true}
-            />
-          </SocketProvider>
-        </ReduxProvider>
+        <ClientLayout>
+          {children}
+          <Toaster />
+        </ClientLayout>
       </body>
     </html>
   );

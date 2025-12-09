@@ -11,9 +11,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Eye, EyeOff, Lock } from 'lucide-react';
 import { useState } from 'react';
+import { useChangePasswordMutation } from '../../../features/settings/settingsApi';
 import { BaseModalProps, PasswordForm, ShowPasswords } from '../settingsType';
-import { ForgotPasswordModal } from './forgot-password-modal';
-import { VerifyCodeModal } from './verify-code-modal';
 
 interface ValidationErrors {
   old?: string;
@@ -35,9 +34,12 @@ export const ChangePasswordModal = ({ onClose }: BaseModalProps) => {
   });
 
   const [errors, setErrors] = useState<ValidationErrors>({});
-  const [isLoading, setIsLoading] = useState(false);
-  const [currentModal, setCurrentModal] = useState<'change' | 'forgot' | 'verify'>('change');
-  const [userEmail, setUserEmail] = useState('');
+
+  const [changePassword, {
+    isLoading: changePasswordLoading,
+    isError: isChangePasswordError,
+    error: changePasswordError
+  }] = useChangePasswordMutation();
 
   const validateForm = (): boolean => {
     const newErrors: ValidationErrors = {};
@@ -77,7 +79,7 @@ export const ChangePasswordModal = ({ onClose }: BaseModalProps) => {
   const handleInputChange = (field: keyof PasswordForm, value: string) => {
     setPasswords(prev => ({ ...prev, [field]: value }));
     // Clear error when user starts typing
-    if (errors[field]) {
+    if (errors[field as keyof ValidationErrors]) {
       setErrors(prev => ({ ...prev, [field]: undefined }));
     }
   };
@@ -96,152 +98,197 @@ export const ChangePasswordModal = ({ onClose }: BaseModalProps) => {
       return;
     }
 
-    setIsLoading(true);
-
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Prepare data for API according to your backend requirements
+      const requestData = {
+        currentPassword: passwords.old,
+        newPassword: passwords.new,
+        confirmPassword: passwords.confirm
+      };
 
-      // Here you would typically send the data to your backend
-      console.log('Password change data:', passwords);
+      // Call the mutation
+      const response = await changePassword(requestData).unwrap();
 
-      // Show success message
+      // Handle successful response
       alert('Password updated successfully!');
+
+      // Reset form and close modal
+      setPasswords({
+        old: '',
+        new: '',
+        confirm: ''
+      });
+
       onClose();
-    } catch (error) {
+
+    } catch (error: any) {
       console.error('Error changing password:', error);
-      alert('Failed to change password. Please try again.');
-    } finally {
-      setIsLoading(false);
+
+      // Handle different types of errors
+      if (error.data?.message) {
+        // Server error message
+        alert(error.data.message);
+      } else if (error.data?.errors) {
+        // Validation errors from server
+        const serverErrors = error.data.errors;
+        setErrors({
+          old: serverErrors.currentPassword?.[0],
+          new: serverErrors.newPassword?.[0],
+          confirm: serverErrors.confirmPassword?.[0]
+        });
+      } else if (error.status === 401) {
+        // Unauthorized - incorrect current password
+        alert('Current password is incorrect');
+        setErrors(prev => ({ ...prev, old: 'Current password is incorrect' }));
+      } else if (error.status === 400) {
+        // Bad request
+        alert('Invalid request. Please check your input.');
+      } else {
+        // Generic error
+        alert('Failed to change password. Please try again.');
+      }
     }
   };
 
-  const handleForgotPassword = () => {
-    setCurrentModal('forgot');
-  };
-
-  const handleForgotPasswordSubmit = (email: string) => {
-    setUserEmail(email);
-    setCurrentModal('verify');
-  };
-
-  const handleVerifySuccess = () => {
-    // When verification is successful, return to change password modal
-    setCurrentModal('change');
-  };
-
   const handleCloseAll = () => {
+    // Reset form when closing
+    setPasswords({
+      old: '',
+      new: '',
+      confirm: ''
+    });
+    setErrors({});
     onClose();
   };
 
-  const PasswordInput = ({
-    field,
-    label,
-    placeholder
-  }: {
-    field: keyof PasswordForm;
-    label: string;
-    placeholder: string;
-  }) => (
-    <div className="space-y-2">
-      <Label htmlFor={field}>{label}</Label>
-      <div className="relative">
-        <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input
-          id={field}
-          type={showPasswords[field] ? 'text' : 'password'}
-          placeholder={placeholder}
-          value={passwords[field]}
-          onChange={(e) => handleInputChange(field, e.target.value)}
-          className={`pl-10 pr-10 ${errors[field] ? 'border-destructive' : ''}`}
-        />
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-          onClick={() => togglePasswordVisibility(field)}
-        >
-
-          {showPasswords[field] ? (
-            <EyeOff className="h-4 w-4 text-muted-foreground" />
-          ) : (
-            <Eye className="h-4 w-4 text-muted-foreground" />
-          )}
-        </Button>
-      </div>
-      {errors[field] && (
-        <p className="text-sm text-destructive">{errors[field]}</p>
-      )}
-    </div>
-  );
-
   return (
-    <>
-      {/* Change Password Modal */}
-      <Dialog open={currentModal === 'change'} onOpenChange={(open) => {
-        if (!open) handleCloseAll();
-      }}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Change Password</DialogTitle>
-          </DialogHeader>
+    <Dialog open={true} onOpenChange={(open) => {
+      if (!open) handleCloseAll();
+    }}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Change Password</DialogTitle>
+        </DialogHeader>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <PasswordInput
-              field="old"
-              label="Enter old password"
-              placeholder="Enter old password"
-            />
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Old Password Input */}
+          <div className="space-y-2">
+            <Label htmlFor="old">Current Password</Label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                id="old"
+                type={showPasswords.old ? 'text' : 'password'}
+                placeholder="Enter current password"
+                value={passwords.old}
+                onChange={(e) => handleInputChange('old', e.target.value)}
+                className={`pl-10 pr-10 ${errors.old ? 'border-destructive' : ''}`}
+                disabled={changePasswordLoading}
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                onClick={() => togglePasswordVisibility('old')}
+                disabled={changePasswordLoading}
+              >
+                {showPasswords.old ? (
+                  <EyeOff className="h-4 w-4 text-muted-foreground" />
+                ) : (
+                  <Eye className="h-4 w-4 text-muted-foreground" />
+                )}
+              </Button>
+            </div>
+            {errors.old && (
+              <p className="text-sm text-destructive">{errors.old}</p>
+            )}
+          </div>
 
-            <PasswordInput
-              field="new"
-              label="New Password"
-              placeholder="Enter new password"
-            />
+          {/* New Password Input */}
+          <div className="space-y-2">
+            <Label htmlFor="new">New Password</Label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                id="new"
+                type={showPasswords.new ? 'text' : 'password'}
+                placeholder="Enter new password"
+                value={passwords.new}
+                onChange={(e) => handleInputChange('new', e.target.value)}
+                className={`pl-10 pr-10 ${errors.new ? 'border-destructive' : ''}`}
+                disabled={changePasswordLoading}
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                onClick={() => togglePasswordVisibility('new')}
+                disabled={changePasswordLoading}
+              >
+                {showPasswords.new ? (
+                  <EyeOff className="h-4 w-4 text-muted-foreground" />
+                ) : (
+                  <Eye className="h-4 w-4 text-muted-foreground" />
+                )}
+              </Button>
+            </div>
+            {errors.new && (
+              <p className="text-sm text-destructive">{errors.new}</p>
+            )}
+          </div>
 
-            <PasswordInput
-              field="confirm"
-              label="Confirm Password"
-              placeholder="Confirm new password"
-            />
+          {/* Confirm Password Input */}
+          <div className="space-y-2">
+            <Label htmlFor="confirm">Confirm Password</Label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                id="confirm"
+                type={showPasswords.confirm ? 'text' : 'password'}
+                placeholder="Confirm new password"
+                value={passwords.confirm}
+                onChange={(e) => handleInputChange('confirm', e.target.value)}
+                className={`pl-10 pr-10 ${errors.confirm ? 'border-destructive' : ''}`}
+                disabled={changePasswordLoading}
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                onClick={() => togglePasswordVisibility('confirm')}
+                disabled={changePasswordLoading}
+              >
+                {showPasswords.confirm ? (
+                  <EyeOff className="h-4 w-4 text-muted-foreground" />
+                ) : (
+                  <Eye className="h-4 w-4 text-muted-foreground" />
+                )}
+              </Button>
+            </div>
+            {errors.confirm && (
+              <p className="text-sm text-destructive">{errors.confirm}</p>
+            )}
+          </div>
 
-            <Button
-              type="button"
-              variant="link"
-              className="p-0 h-auto text-sm text-muted-foreground"
-              onClick={handleForgotPassword}
-            >
-              Forgot password?
-            </Button>
-
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={isLoading}
-            >
-              {isLoading ? 'Updating...' : 'Update Password'}
-            </Button>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Forgot Password Modal */}
-      {currentModal === 'forgot' && (
-        <ForgotPasswordModal
-          onClose={handleCloseAll}
-          onVerify={handleForgotPasswordSubmit}
-        />
-      )}
-
-      {/* Verify Code Modal */}
-      {currentModal === 'verify' && (
-        <VerifyCodeModal
-          onClose={handleCloseAll}
-          onVerifySuccess={handleVerifySuccess}
-          email={userEmail}
-        />
-      )}
-    </>
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={changePasswordLoading}
+          >
+            {changePasswordLoading ? (
+              <span className="flex items-center justify-center gap-2">
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                Updating...
+              </span>
+            ) : (
+              'Update Password'
+            )}
+          </Button>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 };

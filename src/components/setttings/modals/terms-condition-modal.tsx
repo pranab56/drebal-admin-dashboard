@@ -8,52 +8,152 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import toast from 'react-hot-toast';
+import { useGetTermsAndConditionsQuery, useTermsAndConditionsMutation } from '../../../features/settings/settingsApi';
 import TipTapEditor from '../../../TipTapEditor/TipTapEditor';
 import { BaseModalProps } from '../settingsType';
 
-
 export const TermsConditionModal = ({ onClose }: BaseModalProps) => {
-  const [content, setContent] = useState<string>(`
-    <h2>Terms and Conditions</h2>
-  `);
+  const [content, setContent] = useState<string>('');
+  const [title, setTitle] = useState<string>('Terms and Conditions');
 
-  const [isLoading, setIsLoading] = useState(false);
+  // Fetch terms and conditions data
+  const {
+    data: termsData,
+    isLoading: isFetching,
+    isError: isFetchError,
+    refetch
+  } = useGetTermsAndConditionsQuery({});
+
+  // Update mutation
+  const [updateTerms, {
+    isLoading: isUpdating,
+  }] = useTermsAndConditionsMutation();
+
+  useEffect(() => {
+    if (termsData?.success && termsData?.data) {
+      // Set content and title from API response
+      setContent(termsData.data.content || '');
+      setTitle(termsData.data.title || 'Terms and Conditions');
+    }
+  }, [termsData]);
 
   const isContentEmpty = (htmlContent: string): boolean => {
-    // Remove HTML tags and check if there's any text content
     const textContent = htmlContent.replace(/<[^>]*>/g, '').trim();
     return textContent.length === 0;
   };
 
-  const handleUpdate = async () => {
+  const isFormValid = (): boolean => {
+    if (!title.trim()) {
+      alert('Title cannot be empty');
+      return false;
+    }
+
     if (isContentEmpty(content)) {
+      alert('Terms and conditions content cannot be empty');
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleUpdate = async () => {
+    if (!isFormValid()) {
       return;
     }
 
-    setIsLoading(true);
-
     try {
-      // Simulate API call to update terms and conditions
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Prepare data for API
+      const requestData = {
+        type: "terms_and_conditions",
+        title: title.trim(),
+        content: content
+      };
 
-      // Here you would typically send the content to your backend
-      console.log('Updated terms and conditions:', content);
+      // Call the mutation
+      const response = await updateTerms(requestData).unwrap();
 
-      // Show success message
-      alert('Terms and conditions updated successfully!');
-      onClose();
-    } catch (error) {
+      if (response.success) {
+        toast.success(response.message || 'Terms and conditions updated successfully!');
+        await refetch();
+      } else {
+        toast.error(response.message || 'Failed to update terms and conditions');
+      }
+    } catch (error: any) {
       console.error('Error updating terms and conditions:', error);
-      alert('Failed to update terms and conditions. Please try again.');
-    } finally {
-      setIsLoading(false);
+
+      // Handle different types of errors
+      if (error.data?.message) {
+        alert(error.data.message);
+      } else if (error.data?.errors) {
+        // Handle validation errors
+        const errors = error.data.errors;
+        let errorMessage = 'Validation errors:';
+
+        if (errors.title) errorMessage += `\n- Title: ${errors.title[0]}`;
+        if (errors.content) errorMessage += `\n- Content: ${errors.content[0]}`;
+
+        alert(errorMessage);
+      } else if (error.status === 400) {
+        alert('Invalid data. Please check your content.');
+      } else if (error.status === 401) {
+        alert('Unauthorized. Please login again.');
+      } else if (error.status === 403) {
+        alert('You do not have permission to update terms and conditions');
+      } else {
+        alert('Failed to update terms and conditions. Please try again.');
+      }
     }
   };
 
   const handleContentChange = (newContent: string) => {
     setContent(newContent);
   };
+
+
+  // Show loading while fetching data
+  if (isFetching) {
+    return (
+      <Dialog open={true} onOpenChange={onClose}>
+        <DialogContent className="sm:max-w-4xl">
+          <DialogHeader>
+            <DialogTitle className="text-2xl">Terms and Conditions</DialogTitle>
+          </DialogHeader>
+          <div className="flex items-center justify-center py-8">
+            <div className="text-center">
+              <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-300 border-t-blue-600 mx-auto mb-4"></div>
+              <p className="text-muted-foreground">Loading terms and conditions...</p>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  // Show error if fetch fails
+  if (isFetchError) {
+    return (
+      <Dialog open={true} onOpenChange={onClose}>
+        <DialogContent className="sm:max-w-4xl">
+          <DialogHeader>
+            <DialogTitle className="text-2xl">Terms and Conditions</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col items-center justify-center py-8">
+            <div className="text-center">
+              <p className="text-destructive mb-4">Failed to load terms and conditions</p>
+              <Button
+                onClick={() => refetch()}
+                variant="outline"
+              >
+                Retry
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
@@ -62,12 +162,14 @@ export const TermsConditionModal = ({ onClose }: BaseModalProps) => {
           <DialogTitle className="text-2xl">Terms and Conditions</DialogTitle>
         </DialogHeader>
 
-        <div className="flex-1 overflow-hidden">
-          <TipTapEditor
-            content={content}
-            onChange={handleContentChange}
-            placeholder="Write your terms and conditions here..."
-          />
+        <div className="space-y-4">
+          <div className="flex-1 overflow-hidden">
+            <TipTapEditor
+              content={termsData?.data.content || content}
+              onChange={handleContentChange}
+              placeholder="Write your terms and conditions content here..."
+            />
+          </div>
         </div>
 
         <DialogFooter className="flex gap-3 sm:justify-between mt-6">
@@ -76,16 +178,24 @@ export const TermsConditionModal = ({ onClose }: BaseModalProps) => {
             variant="outline"
             onClick={onClose}
             className="flex-1"
+            disabled={isUpdating}
           >
             Cancel
           </Button>
           <Button
             type="button"
             onClick={handleUpdate}
-            disabled={isContentEmpty(content) || isLoading}
+            disabled={isContentEmpty(content) || !title.trim() || isUpdating}
             className="flex-1"
           >
-            {isLoading ? 'Updating...' : 'Update'}
+            {isUpdating ? (
+              <span className="flex items-center justify-center gap-2">
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                Updating...
+              </span>
+            ) : (
+              'Update'
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>

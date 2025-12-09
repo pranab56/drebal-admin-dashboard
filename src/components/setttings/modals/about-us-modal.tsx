@@ -8,52 +8,174 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import toast from 'react-hot-toast';
+import { useAboutMutation, useGetAboutQuery } from '../../../features/settings/settingsApi';
 import TipTapEditor from '../../../TipTapEditor/TipTapEditor';
 import { BaseModalProps } from '../settingsType';
 
 export const AboutUsModal = ({ onClose }: BaseModalProps) => {
-  const [content, setContent] = useState<string>(`
-    <h2>About Our Company</h2>
-    
-  `);
+  const [content, setContent] = useState<string>('');
+  const [title, setTitle] = useState<string>('About Us');
+  const [isInitialized, setIsInitialized] = useState(false);
 
-  const [isLoading, setIsLoading] = useState(false);
+  // Fetch about us data
+  const {
+    data: aboutData,
+    isLoading: isFetching,
+    isError: isFetchError,
+    refetch: refetchAboutData,
+    isSuccess: isFetchSuccess
+  } = useGetAboutQuery({});
+
+  // Update mutation
+  const [updateAbout, {
+    isLoading: isUpdating,
+    isError: isUpdateError,
+    error: updateError
+  }] = useAboutMutation();
+
+  useEffect(() => {
+    setIsInitialized(false);
+  }, []);
+
+  // Set initial data from API
+  useEffect(() => {
+    if (aboutData?.success && aboutData?.data && !isInitialized) {
+      console.log('Setting about data:', aboutData.data);
+      setContent(aboutData.data.content || '');
+      setTitle(aboutData.data.title || 'About Us');
+      setIsInitialized(true);
+    }
+  }, [aboutData, isInitialized]);
+
+  // Force refetch when modal opens
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        await refetchAboutData().unwrap();
+      } catch (error) {
+        console.error('Error fetching about us:', error);
+      }
+    };
+    fetchData();
+  }, [refetchAboutData]);
 
   const isContentEmpty = (htmlContent: string): boolean => {
-    // Remove HTML tags and check if there's any text content
+    if (!htmlContent) return true;
     const textContent = htmlContent.replace(/<[^>]*>/g, '').trim();
     return textContent.length === 0;
   };
 
-  const handleUpdate = async () => {
+  const isFormValid = (): boolean => {
+    if (!title.trim()) {
+      alert('Title cannot be empty');
+      return false;
+    }
+
     if (isContentEmpty(content)) {
+      alert('About us content cannot be empty');
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleUpdate = async () => {
+    if (!isFormValid()) {
       return;
     }
 
-    setIsLoading(true);
-
     try {
-      // Simulate API call to update about us content
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Prepare data for API - check your API documentation for the correct structure
+      // For about us, it might be "type": "about" or "type": "about_us"
+      const requestData = {
+        type: "about_us", // or "about_us" - check your API
+        title: title.trim(),
+        content: content
+      };
+      const response = await updateAbout(requestData).unwrap();
+      if (response.success) {
+        toast.success(response.message || 'About us content updated successfully!');
+        await refetchAboutData();
+      } else {
+        toast.error(response.message || 'Failed to update about us content');
+      }
 
-      // Here you would typically send the content to your backend
-      console.log('Updated about us content:', content);
+    } catch (error: any) {
+      console.error('Error updating about us:', error);
 
-      // Show success message
-      alert('About us content updated successfully!');
-      onClose();
-    } catch (error) {
-      console.error('Error updating about us content:', error);
-      alert('Failed to update about us content. Please try again.');
-    } finally {
-      setIsLoading(false);
+      if (error.data?.message) {
+        alert(error.data.message);
+      } else if (error.data?.errors) {
+        // Handle validation errors
+        const errors = error.data.errors;
+        let errorMessage = 'Validation errors:';
+
+        if (errors.title) errorMessage += `\n- Title: ${errors.title[0]}`;
+        if (errors.content) errorMessage += `\n- Content: ${errors.content[0]}`;
+        if (errors.type) errorMessage += `\n- Type: ${errors.type[0]}`;
+
+        alert(errorMessage);
+      } else if (error.status === 400) {
+        alert('Invalid data. Please check your content.');
+      } else if (error.status === 401) {
+        alert('Unauthorized. Please login again.');
+      } else if (error.status === 403) {
+        alert('You do not have permission to update about us content');
+      } else {
+        alert('Failed to update about us content. Please try again.');
+      }
     }
   };
 
   const handleContentChange = (newContent: string) => {
     setContent(newContent);
   };
+
+
+  // Show loading while fetching data
+  if (isFetching && !isInitialized) {
+    return (
+      <Dialog open={true} onOpenChange={onClose}>
+        <DialogContent className="sm:max-w-4xl">
+          <DialogHeader>
+            <DialogTitle className="text-2xl">About Us</DialogTitle>
+          </DialogHeader>
+          <div className="flex items-center justify-center py-8">
+            <div className="text-center">
+              <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-300 border-t-blue-600 mx-auto mb-4"></div>
+              <p className="text-muted-foreground">Loading about us content...</p>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  // Show error if fetch fails
+  if (isFetchError) {
+    return (
+      <Dialog open={true} onOpenChange={onClose}>
+        <DialogContent className="sm:max-w-4xl">
+          <DialogHeader>
+            <DialogTitle className="text-2xl">About Us</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col items-center justify-center py-8">
+            <div className="text-center">
+              <p className="text-destructive mb-4">Failed to load about us content</p>
+              <Button
+                onClick={() => refetchAboutData()}
+                variant="outline"
+              >
+                Retry
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
@@ -62,12 +184,15 @@ export const AboutUsModal = ({ onClose }: BaseModalProps) => {
           <DialogTitle className="text-2xl">About Us</DialogTitle>
         </DialogHeader>
 
-        <div className="flex-1 overflow-hidden">
-          <TipTapEditor
-            content={content}
-            onChange={handleContentChange}
-            placeholder="Write your about us content here..."
-          />
+        <div className="space-y-4">
+          {/* Content Editor */}
+          <div className="flex-1 overflow-hidden">
+            <TipTapEditor
+              content={aboutData?.data.content || content}
+              onChange={handleContentChange}
+              placeholder="Write your about us content here..."
+            />
+          </div>
         </div>
 
         <DialogFooter className="flex gap-3 sm:justify-between mt-6">
@@ -76,16 +201,24 @@ export const AboutUsModal = ({ onClose }: BaseModalProps) => {
             variant="outline"
             onClick={onClose}
             className="flex-1"
+            disabled={isUpdating}
           >
             Cancel
           </Button>
           <Button
             type="button"
             onClick={handleUpdate}
-            disabled={isContentEmpty(content) || isLoading}
+            disabled={isContentEmpty(content) || !title.trim() || isUpdating}
             className="flex-1"
           >
-            {isLoading ? 'Updating...' : 'Update'}
+            {isUpdating ? (
+              <span className="flex items-center justify-center gap-2">
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                Updating...
+              </span>
+            ) : (
+              'Update'
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>

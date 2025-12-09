@@ -1,7 +1,6 @@
 // components/category/CategoryTab.tsx
 "use client";
 
-import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -11,35 +10,90 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Edit, Trash2, Plus } from 'lucide-react';
-
+import { Edit, Plus, Trash2 } from 'lucide-react';
+import { useState } from 'react';
 import AddCategoryModal from './AddCategoryModal';
-import EditCategoryModal from './EditCategoryModal';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
+import EditCategoryModal from './EditCategoryModal';
 import { Category } from './types/category';
+import { 
+  useCreateCategoryMutation, 
+  useEditCategoryMutation, 
+  useDeleteCategoryMutation 
+} from '../../features/category/categoryApi';
 
 interface CategoryTabProps {
   categories: Category[];
-  onAddCategory: (category: Omit<Category, 'id' | 'createdAt'>) => void;
-  onEditCategory: (category: Category) => void;
-  onDeleteCategory: (id: number) => void;
+  onRefetch: () => void;
 }
 
 const CategoryTab: React.FC<CategoryTabProps> = ({
   categories,
-  onAddCategory,
-  onEditCategory,
-  onDeleteCategory,
+  onRefetch,
 }) => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
 
+  const [createCategory, { isLoading: isCreating }] = useCreateCategoryMutation();
+  const [editCategory, { isLoading: isEditing }] = useEditCategoryMutation();
+  const [deleteCategory, { isLoading: isDeleting }] = useDeleteCategoryMutation();
+
+  const handleAddCategory = async (categoryData: any) => {
+    try {
+      const formData = new FormData();
+      formData.append('title', categoryData.name);
+      if (categoryData.description) {
+        formData.append('description', categoryData.description);
+      }
+      
+      if (categoryData.image instanceof File) {
+        formData.append('coverImage', categoryData.image);
+      } else if (typeof categoryData.image === 'string') {
+        formData.append('coverImage', categoryData.image);
+      }
+
+      await createCategory(formData).unwrap();
+      onRefetch();
+      setIsAddModalOpen(false);
+    } catch (error) {
+      console.error('Error adding category:', error);
+      alert('Error adding category');
+    }
+  };
+
   const handleEdit = (category: Category) => {
     setSelectedCategory(category);
     setIsEditModalOpen(true);
+  };
+
+  const handleSaveCategory = async (categoryData: any) => {
+    if (!selectedCategory) return;
+
+    try {
+      const formData = new FormData();
+      formData.append('title', categoryData.name);
+      if (categoryData.description) {
+        formData.append('description', categoryData.description);
+      }
+      
+      if (categoryData.imageFile) {
+        formData.append('coverImage', categoryData.imageFile);
+      }
+
+      await editCategory({ 
+        id: selectedCategory._id, 
+        data: formData 
+      }).unwrap();
+      
+      onRefetch();
+      setIsEditModalOpen(false);
+      setSelectedCategory(null);
+    } catch (error) {
+      console.error('Error updating category:', error);
+      alert('Error updating category');
+    }
   };
 
   const handleDelete = (category: Category) => {
@@ -47,11 +101,21 @@ const CategoryTab: React.FC<CategoryTabProps> = ({
     setIsDeleteModalOpen(true);
   };
 
-  const handleConfirmDelete = () => {
-    if (selectedCategory) {
-      onDeleteCategory(selectedCategory.id);
+  const handleConfirmDelete = async () => {
+    if (!selectedCategory) return;
+
+    try {
+      await deleteCategory({ 
+        id: selectedCategory._id, 
+        type: 'category' 
+      }).unwrap();
+      
+      onRefetch();
       setIsDeleteModalOpen(false);
       setSelectedCategory(null);
+    } catch (error) {
+      console.error('Error deleting category:', error);
+      alert('Error deleting category');
     }
   };
 
@@ -59,9 +123,13 @@ const CategoryTab: React.FC<CategoryTabProps> = ({
     <div>
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-semibold">All Categories</h2>
-        <Button onClick={() => setIsAddModalOpen(true)} className="bg-green-600 hover:bg-green-700">
+        <Button 
+          onClick={() => setIsAddModalOpen(true)} 
+          className="bg-green-600 hover:bg-green-700"
+          disabled={isCreating}
+        >
           <Plus className="w-4 h-4 mr-2" />
-          Add Category
+          {isCreating ? 'Adding...' : 'Add Category'}
         </Button>
       </div>
 
@@ -78,22 +146,22 @@ const CategoryTab: React.FC<CategoryTabProps> = ({
           </TableHeader>
           <TableBody>
             {categories.map((category) => (
-              <TableRow key={category.id}>
+              <TableRow key={category._id}>
                 <TableCell>
                   <img
-                    src={category.image}
-                    alt={category.name}
+                    src={category.coverImage}
+                    alt={category.title}
                     className="w-12 h-12 rounded-lg object-cover"
                   />
                 </TableCell>
-                <TableCell className="font-medium">{category.name}</TableCell>
+                <TableCell className="font-medium">{category.title}</TableCell>
                 <TableCell>
                   {category.description || (
                     <span className="text-gray-400">No description</span>
                   )}
                 </TableCell>
                 <TableCell>
-                  {category.createdAt.toLocaleDateString()}
+                  {new Date(category.createdAt).toLocaleDateString()}
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
@@ -101,6 +169,7 @@ const CategoryTab: React.FC<CategoryTabProps> = ({
                       variant="outline"
                       size="sm"
                       onClick={() => handleEdit(category)}
+                      disabled={isEditing}
                     >
                       <Edit className="w-4 h-4" />
                     </Button>
@@ -109,6 +178,7 @@ const CategoryTab: React.FC<CategoryTabProps> = ({
                       size="sm"
                       onClick={() => handleDelete(category)}
                       className="text-red-600 hover:text-red-700"
+                      disabled={isDeleting}
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>
@@ -118,13 +188,19 @@ const CategoryTab: React.FC<CategoryTabProps> = ({
             ))}
           </TableBody>
         </Table>
+
+        {categories.length === 0 && (
+          <div className="text-center py-8 text-gray-500">
+            No categories found
+          </div>
+        )}
       </div>
 
-      {/* Modals */}
       <AddCategoryModal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
-        onAdd={onAddCategory}
+        onAdd={handleAddCategory}
+        isLoading={isCreating}
       />
 
       <EditCategoryModal
@@ -133,8 +209,9 @@ const CategoryTab: React.FC<CategoryTabProps> = ({
           setIsEditModalOpen(false);
           setSelectedCategory(null);
         }}
-        onSave={onEditCategory}
+        onSave={handleSaveCategory}
         category={selectedCategory}
+        isLoading={isEditing}
       />
 
       <DeleteConfirmationModal
@@ -146,6 +223,7 @@ const CategoryTab: React.FC<CategoryTabProps> = ({
         onConfirm={handleConfirmDelete}
         title="Delete Category"
         description="Are you sure you want to delete this category? This action cannot be undone."
+        isLoading={isDeleting}
       />
     </div>
   );

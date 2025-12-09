@@ -1,3 +1,103 @@
+// components/event/eventType.ts
+
+export interface Category {
+  categoryId: {
+    _id: string;
+    title: string;
+  };
+  subCategory: Array<{
+    _id: string;
+    title: string;
+  }>;
+  _id: string;
+}
+
+export interface Ticket {
+  type: string;
+  price: number;
+  availableUnits: number;
+  outstandingUnits: number;
+  earnedAmount: number;
+  ticketBuyerId: string[];
+  _id: string;
+  perticipentCount: number;
+}
+
+export interface EventData {
+  _id: string;
+  userId: string;
+  eventName: string;
+  image: string;
+  category: Category[];
+  tags: string[];
+  description: string;
+  eventDate: string;
+  startTime: string;
+  endTime: string;
+  streetAddress: string;
+  streetAddress2: string;
+  city: string;
+  state: string;
+  country: string;
+  EventStatus: 'UnderReview' | 'Live' | 'Rejected' | 'Completed' | 'Cancelled';
+  notification: string;
+  notificationStatus: string;
+  eventCode: string;
+  tickets: Ticket[];
+  ticketSaleStart: string;
+  preSaleStart: string;
+  preSaleEnd: string;
+  isFreeEvent: boolean;
+  discountCodes: any[];
+  organizerName: string;
+  organizerEmail: string;
+  organizerPhone: string;
+  locationName: string;
+  totalEarned: number;
+  totalReview: any[];
+  isDraft: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// For list view (simplified version)
+export interface EventListItem {
+  _id: string;
+  eventName: string;
+  image: string;
+  eventDate: string;
+  startTime: string;
+  streetAddress: string;
+  streetAddress2: string;
+  EventStatus: 'UnderReview' | 'Live' | 'Rejected' | 'Completed' | 'Cancelled';
+  eventCode: string;
+  ticketSaleStart: string;
+  preSaleStart: string;
+  isFreeEvent: boolean;
+}
+
+// For UI components (compatible with existing UI)
+export interface UIEvent {
+  id: string;
+  name: string;
+  location: string;
+  category: string;
+  earned: string;
+  deadline: string;
+  status: 'pending' | 'approved' | 'rejected' | 'live' | 'completed' | 'cancelled';
+  image: string;
+  creator: string;
+  publishedDate: string;
+  registrationStatus: string;
+  totalReviews: string;
+  revenue: string;
+  organizer: Organizer;
+  ticketTypes: string[];
+  description: string;
+  purchasedTickets: PurchasedTicket[];
+  resoldTickets: ResoldTicket[];
+}
+
 export interface Organizer {
   name: string;
   email: string;
@@ -20,33 +120,12 @@ export interface ResoldTicket {
   updateTime: string;
 }
 
-export interface Event {
-  id: number;
-  name: string;
-  location: string;
-  category: string;
-  earned: string;
-  deadline: string;
-  status: 'pending' | 'approved' | 'rejected';
-  image: string;
-  creator: string;
-  publishedDate: string;
-  registrationStatus: string;
-  totalReviews: string;
-  revenue: string;
-  organizer: Organizer;
-  ticketTypes: string[];
-  description: string;
-  purchasedTickets: PurchasedTicket[];
-  resoldTickets: ResoldTicket[];
-}
-
 export interface AllEventsPageProps {
-  onEventClick: (event: Event) => void;
+  onEventClick: (eventId: string) => void;
 }
 
 export interface EventDetailsPageProps {
-  event: Event;
+  eventId: string;
   onBack: () => void;
   onApprove: () => void;
   onReject: () => void;
@@ -70,4 +149,15 @@ export interface TicketModalProps {
 export interface DetailRowProps {
   label: string;
   value: string;
+}
+
+export interface ConfirmationModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  title: string;
+  message: string;
+  confirmText?: string;
+  cancelText?: string;
+  isProcessing?: boolean;
 }

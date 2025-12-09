@@ -15,10 +15,9 @@ import { useState } from 'react';
 import TipTapEditor from '../../../TipTapEditor/TipTapEditor';
 import { BaseModalProps, FAQ } from '../settingsType';
 
-
 interface EditFAQModalProps extends BaseModalProps {
   faq: FAQ;
-  onEdit: (faq: Omit<FAQ, 'id'>) => void;
+  onEdit: (faq: Omit<FAQ, '_id' | 'createdAt' | 'updatedAt' | 'type' | 'faqType'>) => void;
 }
 
 export const EditFAQModal = ({ faq, onClose, onEdit }: EditFAQModalProps) => {
@@ -63,17 +62,13 @@ export const EditFAQModal = ({ faq, onClose, onEdit }: EditFAQModalProps) => {
     setIsLoading(true);
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      onEdit({
+      await onEdit({
         question: question.trim(),
         answer
       });
     } catch (error) {
       console.error('Error updating FAQ:', error);
       alert('Failed to update FAQ. Please try again.');
-    } finally {
       setIsLoading(false);
     }
   };
@@ -108,13 +103,16 @@ export const EditFAQModal = ({ faq, onClose, onEdit }: EditFAQModalProps) => {
           <DialogTitle>Edit FAQ</DialogTitle>
           <DialogDescription>
             Update the frequently asked question and answer.
+            <span className="block mt-1 text-xs">
+              Type: <span className="font-medium capitalize">{faq.faqType}</span>
+            </span>
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6">
           <div className="space-y-2">
             <Label htmlFor="question" className="text-sm font-semibold">
-              FAQ Question
+              FAQ Question *
             </Label>
             <Input
               id="question"
@@ -134,7 +132,7 @@ export const EditFAQModal = ({ faq, onClose, onEdit }: EditFAQModalProps) => {
 
           <div className="space-y-2">
             <Label htmlFor="answer" className="text-sm font-semibold">
-              Answer
+              Answer *
             </Label>
             <TipTapEditor
               content={answer}
@@ -144,6 +142,9 @@ export const EditFAQModal = ({ faq, onClose, onEdit }: EditFAQModalProps) => {
             {errors.answer && (
               <p className="text-sm text-destructive">{errors.answer}</p>
             )}
+            <p className="text-xs text-muted-foreground">
+              Provide a detailed answer with formatting if needed
+            </p>
           </div>
         </div>
 
@@ -153,6 +154,7 @@ export const EditFAQModal = ({ faq, onClose, onEdit }: EditFAQModalProps) => {
             variant="outline"
             onClick={onClose}
             className="flex-1"
+            disabled={isLoading}
           >
             Cancel
           </Button>

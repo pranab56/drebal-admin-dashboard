@@ -3,9 +3,14 @@
 import { Eye, EyeOff, Lock, Mail } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import toast from 'react-hot-toast';
+import { saveToken } from '../../../../../utils/storage';
+import { useLoginMutation } from '../../../../features/auth/authApi';
 
 export default function LoginPage() {
+  const router = useRouter();
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [showPassword, setShowPassword] = useState<boolean>(false);
@@ -14,14 +19,14 @@ export default function LoginPage() {
     email: '',
     password: ''
   });
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [Login, { isLoading }] = useLoginMutation();
 
   const validateEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
   };
 
-  const handleSubmit = (): void => {
+  const validateForm = (): boolean => {
     const newErrors = { email: '', password: '' };
 
     if (!email) {
@@ -37,13 +42,25 @@ export default function LoginPage() {
     }
 
     setErrors(newErrors);
+    return !newErrors.email && !newErrors.password;
+  };
 
-    if (!newErrors.email && !newErrors.password) {
-      setIsLoading(true);
-      setTimeout(() => {
-        setIsLoading(false);
-        alert('Login successful!');
-      }, 1500);
+  const handleSubmit = async (e?: React.FormEvent): Promise<void> => {
+    if (e) e.preventDefault();
+
+    if (!validateForm()) {
+      return;
+    }
+
+
+
+    try {
+      const response = await Login({ email: email, password: password }).unwrap();
+      toast.success(response.message || 'Successfully logged in.');
+      saveToken(response?.data?.Token);
+      router.push('/');
+    } catch (error: any) {
+      console.log('Login error:', error);
     }
   };
 
@@ -78,7 +95,7 @@ export default function LoginPage() {
             <h2 className="text-xl font-bold text-gray-800 mb-1">Hello, Welcome!</h2>
             <p className="text-xs text-gray-600 mb-6">Please Enter Your Details Below to Continue</p>
 
-            <div className="space-y-5">
+            <form onSubmit={handleSubmit} className="space-y-5">
               {/* Email Field */}
               <div>
                 <label htmlFor="email" className="block text-sm font-semibold text-gray-800 mb-2">
@@ -164,14 +181,13 @@ export default function LoginPage() {
 
               {/* Login Button */}
               <button
-                type="button"
-                onClick={handleSubmit}
+                type="submit"
                 disabled={isLoading}
                 className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
               >
                 {isLoading ? 'Loading...' : 'Login'}
               </button>
-            </div>
+            </form>
           </div>
         </div>
       </div>
