@@ -9,6 +9,7 @@ export default function EventsApp() {
   const [currentView, setCurrentView] = useState<'list' | 'details'>('list');
   const [selectedEventId, setSelectedEventId] = useState<string>('');
 
+
   const handleEventClick = (eventId: string): void => {
     setSelectedEventId(eventId);
     setCurrentView('details');

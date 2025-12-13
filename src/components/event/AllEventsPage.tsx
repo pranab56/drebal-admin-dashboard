@@ -10,13 +10,12 @@ import {
 } from '@/components/ui/select';
 import { MapPin, Search } from 'lucide-react';
 import { useState } from 'react';
+import { baseURL } from '../../../utils/BaseURL';
 import { useGetAllEventsQuery } from '../../features/events/eventApi';
 import { EventListItem } from './eventType';
-import { baseURL } from '../../../utils/BaseURL';
 
 export default function AllEventsPage({ onEventClick }: { onEventClick: (eventId: string) => void }) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('UnderReview'); // Default to UnderReview
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -91,10 +90,11 @@ export default function AllEventsPage({ onEventClick }: { onEventClick: (eventId
 
           {/* Status Filter */}
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[180px] border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
+            <SelectTrigger className="w-[180px] py-5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className=''>
+
               <SelectItem value="UnderReview">Under Review</SelectItem>
               <SelectItem value="Live">Live</SelectItem>
               <SelectItem value="Rejected">Rejected</SelectItem>
@@ -214,8 +214,8 @@ export default function AllEventsPage({ onEventClick }: { onEventClick: (eventId
                 key={pageNum}
                 onClick={() => setCurrentPage(pageNum)}
                 className={`px-3 py-2 rounded-lg ${currentPage === pageNum
-                    ? 'bg-green-700 text-white'
-                    : 'border border-gray-300 hover:bg-gray-50'
+                  ? 'bg-green-700 text-white'
+                  : 'border border-gray-300 hover:bg-gray-50'
                   }`}
               >
                 {pageNum}

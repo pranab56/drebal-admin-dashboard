@@ -13,23 +13,22 @@ import { Label } from '@/components/ui/label';
 import { Upload, X } from 'lucide-react';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
+import toast from 'react-hot-toast';
 import { baseURL } from '../../../../utils/BaseURL';
 import { useGetPersonalInformationQuery, useUpdatePersonalInformationMutation } from "../../../features/settings/settingsApi";
 import { BaseModalProps, PersonalInfoForm } from '../settingsType';
 
 interface ValidationErrors {
-  fullName?: string;
+  name?: string;
   email?: string;
   contact?: string;
   image?: string;
-  firstName?: string;
-  lastName?: string;
 }
 
 export const PersonalInfoModal = ({ onClose }: BaseModalProps) => {
   // Initialize form with empty values
   const [formData, setFormData] = useState<PersonalInfoForm>({
-    fullName: '',
+    name: '',
     email: '',
     contact: ''
   });
@@ -89,14 +88,12 @@ export const PersonalInfoModal = ({ onClose }: BaseModalProps) => {
     if (personalInformation?.data) {
       const { data } = personalInformation;
 
-      // Construct full name from firstName and lastName
-      const firstName = data.personalInfo?.firstName || '';
-      const lastName = data.personalInfo?.lastName || '';
-      const fullName = `${firstName} ${lastName}`.trim() || data.name || '';
+      // Get name directly from API
+      const name = data?.name || '';
 
       // Set form data
       setFormData({
-        fullName: fullName,
+        name: name,
         email: data.email || '',
         contact: data.personalInfo?.phone || ''
       });
@@ -116,11 +113,11 @@ export const PersonalInfoModal = ({ onClose }: BaseModalProps) => {
   const validateForm = (): boolean => {
     const newErrors: ValidationErrors = {};
 
-    // Full name validation
-    if (!formData.fullName.trim()) {
-      newErrors.fullName = 'Full name is required';
-    } else if (formData.fullName.trim().length < 2) {
-      newErrors.fullName = 'Full name must be at least 2 characters';
+    // Name validation
+    if (!formData.name.trim()) {
+      newErrors.name = 'Name is required';
+    } else if (formData.name.trim().length < 2) {
+      newErrors.name = 'Name must be at least 2 characters';
     }
 
     // Email validation
@@ -215,17 +212,14 @@ export const PersonalInfoModal = ({ onClose }: BaseModalProps) => {
     setIsLoading(true);
 
     try {
-      // Split full name into first and last name
-      const nameParts = formData.fullName.trim().split(' ');
-      const firstName = nameParts[0] || '';
-      const lastName = nameParts.slice(1).join(' ') || '';
-
       // Create FormData for file upload
       const formDataToSend = new FormData();
 
       const personalInfo = {
-        name: firstName,
-        phone: formData.contact,
+        name: formData.name.trim(),
+        personalInfo: {
+          phone: formData.contact,
+        }
       };
       formDataToSend.append('data', JSON.stringify(personalInfo));
 
@@ -238,26 +232,21 @@ export const PersonalInfoModal = ({ onClose }: BaseModalProps) => {
       const response = await updatePersonalInformation(formDataToSend).unwrap();
 
       if (response.success) {
-        // Show success message
-        // You might want to use a toast notification here instead of alert
-        alert('Profile updated successfully!');
-
-        // Refetch the updated data
+        toast.success(response.message || 'Profile updated successfully!');
         await refetch();
-
-        // Close modal
-        onClose();
+        setTimeout(() => {
+          onClose();
+        }, 3000);
       } else {
-        alert(response.message || 'Failed to update profile');
+        toast.error(response.message || 'Failed to update profile');
       }
     } catch (error: any) {
-      console.error('Error updating profile:', error);
-
+      toast.error(error.data.message || 'Failed to update profile. Please try again.');
       // Handle specific error messages from API
       if (error.data?.message) {
-        alert(error.data.message);
+        toast.error(error.data.message);
       } else {
-        alert('Failed to update profile. Please try again.');
+        toast.error('Failed to update profile. Please try again.');
       }
     } finally {
       setIsLoading(false);
@@ -333,7 +322,7 @@ export const PersonalInfoModal = ({ onClose }: BaseModalProps) => {
                 }}
               />
               <AvatarFallback className="text-lg">
-                {getInitials(formData.fullName || personalInformation?.data?.name || '')}
+                {getInitials(formData.name || personalInformation?.data?.name || '')}
               </AvatarFallback>
             </Avatar>
 
@@ -362,7 +351,7 @@ export const PersonalInfoModal = ({ onClose }: BaseModalProps) => {
           </div>
 
           <h2 className="text-xl font-semibold">
-            {formData.fullName || personalInformation?.data?.name || 'User'}
+            {formData.name || personalInformation?.data?.name || 'User'}
           </h2>
           <p className="text-muted-foreground capitalize">
             {personalInformation?.data?.role?.toLowerCase() || 'User'}
@@ -375,17 +364,17 @@ export const PersonalInfoModal = ({ onClose }: BaseModalProps) => {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="fullName">Full name</Label>
+            <Label htmlFor="name">Name</Label>
             <Input
-              id="fullName"
+              id="name"
               type="text"
-              value={formData.fullName}
-              onChange={(e) => handleInputChange('fullName', e.target.value)}
-              className={errors.fullName ? 'border-destructive' : ''}
-              placeholder="Enter your full name"
+              value={formData.name}
+              onChange={(e) => handleInputChange('name', e.target.value)}
+              className={errors.name ? 'border-destructive' : ''}
+              placeholder="Enter your name"
             />
-            {errors.fullName && (
-              <p className="text-sm text-destructive">{errors.fullName}</p>
+            {errors.name && (
+              <p className="text-sm text-destructive">{errors.name}</p>
             )}
           </div>
 
@@ -395,6 +384,7 @@ export const PersonalInfoModal = ({ onClose }: BaseModalProps) => {
               id="email"
               type="email"
               value={formData.email}
+              disabled
               onChange={(e) => handleInputChange('email', e.target.value)}
               className={errors.email ? 'border-destructive' : ''}
               placeholder="Enter your email"

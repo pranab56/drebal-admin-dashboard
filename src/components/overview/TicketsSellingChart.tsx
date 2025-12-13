@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from 'react';
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
@@ -35,12 +34,15 @@ interface TooltipProps {
 
 interface TicketsSellingChartProps {
   ticketsData?: TicketsData;
+  selectedMonth: string;
+  onMonthChange: (month: string) => void;
 }
 
-function TicketsSellingChart({ ticketsData }: TicketsSellingChartProps) {
-  const [selectedMonth, setSelectedMonth] = useState(
-    ticketsData?.month || "December"
-  );
+function TicketsSellingChart({ 
+  ticketsData, 
+  selectedMonth, 
+  onMonthChange 
+}: TicketsSellingChartProps) {
 
   // Transform API data to chart format
   const transformData = (data: TicketsData): PieData[] => {
@@ -91,9 +93,12 @@ function TicketsSellingChart({ ticketsData }: TicketsSellingChartProps) {
         <CardTitle className="text-lg font-semibold text-gray-900">
           Tickets Selling
         </CardTitle>
-        <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+        <Select 
+          value={selectedMonth} 
+          onValueChange={onMonthChange}
+        >
           <SelectTrigger className="w-[120px] h-9 border-gray-200">
-            <SelectValue />
+            <SelectValue placeholder="Select month" />
           </SelectTrigger>
           <SelectContent>
             {months.map(month => (

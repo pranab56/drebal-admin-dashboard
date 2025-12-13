@@ -1,23 +1,75 @@
 "use client";
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Bell, ChevronDown } from "lucide-react";
+import Image from 'next/image';
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { baseURL } from '../../../utils/BaseURL';
+import { useGetAllNotificationQuery } from '../../features/notification/notifications';
+import { useGetPersonalInformationQuery } from '../../features/settings/settingsApi';
 
 export default function MainlandHeader() {
-  const unreadCount = 5; // Example unread count
-  const userName = "Alax tom";
-  const userRole = "Admin";
-  const userImage = "https://api.dicebear.com/7.x/avataaars/svg?seed=Alax";
   const router = useRouter();
+
+  const {
+    data: personalInformation,
+    isLoading: personalInformationLoading,
+  } = useGetPersonalInformationQuery({});
+
+  const { data: notificationsData, isLoading: notificationsLoading } = useGetAllNotificationQuery({});
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
 
   const dropdownRef = useRef<HTMLDivElement>(null);
   const notificationRef = useRef<HTMLDivElement>(null);
+
+  // Calculate unread notifications count
+  const unreadCount = notificationsData?.data?.filter(
+    (notification: any) => !notification.read
+  )?.length || 0;
+
+  // Format time ago function
+  const formatTimeAgo = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+    if (diffInSeconds < 60) return 'Just now';
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} min ago`;
+    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} hour${Math.floor(diffInSeconds / 3600) > 1 ? 's' : ''} ago`;
+    if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)} day${Math.floor(diffInSeconds / 86400) > 1 ? 's' : ''} ago`;
+    if (diffInSeconds < 2592000) return `${Math.floor(diffInSeconds / 604800)} week${Math.floor(diffInSeconds / 604800) > 1 ? 's' : ''} ago`;
+    if (diffInSeconds < 31536000) return `${Math.floor(diffInSeconds / 2592000)} month${Math.floor(diffInSeconds / 2592000) > 1 ? 's' : ''} ago`;
+    return `${Math.floor(diffInSeconds / 31536000)} year${Math.floor(diffInSeconds / 31536000) > 1 ? 's' : ''} ago`;
+  };
+
+  // Get status badge color
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'approved':
+        return 'bg-green-100 text-green-800 border-green-200';
+      case 'rejected':
+        return 'bg-red-100 text-red-800 border-red-200';
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      default:
+        return 'bg-gray-100 text-gray-800 border-gray-200';
+    }
+  };
+
+  // Get avatar fallback text
+  const getAvatarFallback = (eventTitle?: string) => {
+    if (!eventTitle) return 'EV';
+    const words = eventTitle.split(' ');
+    if (words.length >= 2) {
+      return `${words[0][0]}${words[1][0]}`.toUpperCase();
+    }
+    return eventTitle.substring(0, 2).toUpperCase();
+  };
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -52,42 +104,39 @@ export default function MainlandHeader() {
   const handleLogout = () => {
     console.log("Logging out...");
     setIsDropdownOpen(false);
+    // Clear any authentication tokens here if needed
     router.push("/auth/login");
   };
 
-  // Sample notification data
-  const notifications = [
-    {
-      id: 1,
-      message: "You have a new message from New Event",
-      time: "5 min ago",
-      avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Event1",
-    },
-    {
-      id: 2,
-      message: "You have a new message from New Event",
-      time: "5 min ago",
-      avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Event2",
-    },
-    {
-      id: 3,
-      message: "You have a new message from New Event",
-      time: "5 min ago",
-      avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Event3",
-    },
-    {
-      id: 4,
-      message: "You have a new message from New Event",
-      time: "5 min ago",
-      avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Event4",
-    },
-    {
-      id: 5,
-      message: "You have a new message from New Event",
-      time: "5 min ago",
-      avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Event5",
-    },
-  ];
+  const handleViewAllClick = () => {
+    setIsNotificationOpen(false);
+    router.push("/notifications");
+  };
+
+  const handleNotificationItemClick = (notification: any) => {
+    // You can add specific navigation based on notification type
+    setIsNotificationOpen(false);
+
+    // Example: Navigate to event if eventId exists
+    if (notification.event?.eventId) {
+      router.push(`/events/${notification.event.eventId}`);
+    }
+  };
+
+  // Loading state
+  if (personalInformationLoading) {
+    return (
+      <div className="w-full border-b bg-white">
+        <header className="flex h-16 items-center justify-end px-6 gap-4">
+          <Skeleton className="h-9 w-9 rounded-full" />
+          <div className="flex flex-col gap-1">
+            <Skeleton className="h-4 w-24" />
+            <Skeleton className="h-3 w-16" />
+          </div>
+        </header>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full border-b bg-white">
@@ -111,35 +160,92 @@ export default function MainlandHeader() {
             <div className="absolute right-0 top-full mt-2 w-80 rounded-lg border border-gray-200 bg-white shadow-lg z-50 max-h-96 overflow-hidden flex flex-col">
               <div className="p-3 border-b border-gray-200">
                 <h3 className="text-sm font-semibold text-gray-900">Notifications</h3>
+                {notificationsData?.data?.length > 0 && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    {unreadCount} unread of {notificationsData.data.length} total
+                  </p>
+                )}
               </div>
               <div className="overflow-y-auto flex-1">
-                {notifications.map((notification) => (
-                  <div
-                    key={notification.id}
-                    className="flex items-start gap-3 p-3 hover:bg-gray-50 cursor-pointer transition-colors border-b border-gray-100 last:border-b-0"
-                  >
-                    <Avatar className="h-10 w-10 flex-shrink-0 ring-2 ring-[#00a651]">
-                      <AvatarImage src={notification.avatar} alt="Event" />
-                      <AvatarFallback className="bg-green-100 text-green-600 text-xs">
-                        NE
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs text-gray-900 leading-relaxed">
-                        {notification.message}
-                      </p>
-                      <p className="text-[10px] text-gray-500 mt-1">
-                        {notification.time}
-                      </p>
+                {notificationsLoading ? (
+                  // Loading skeleton for notifications
+                  Array.from({ length: 3 }).map((_, index) => (
+                    <div key={index} className="flex items-start gap-3 p-3 border-b border-gray-100">
+                      <Skeleton className="h-10 w-10 rounded-full" />
+                      <div className="flex-1 space-y-2">
+                        <Skeleton className="h-3 w-full" />
+                        <Skeleton className="h-3 w-3/4" />
+                        <Skeleton className="h-2 w-16" />
+                      </div>
                     </div>
+                  ))
+                ) : notificationsData?.data?.length > 0 ? (
+                  notificationsData.data.slice(0, 5).map((notification: any) => (
+                    <div
+                      key={notification._id}
+                      onClick={() => handleNotificationItemClick(notification)}
+                      className={`flex items-start gap-3 p-3 hover:bg-gray-50 cursor-pointer transition-colors border-b border-gray-100 last:border-b-0 ${!notification.read ? 'bg-blue-50' : ''
+                        }`}
+                    >
+                      <Avatar className="h-10 w-10 flex-shrink-0 ring-2 ring-[#00a651]">
+                        <AvatarFallback className={`font-medium ${getStatusColor(notification.status)}`}>
+                          {getAvatarFallback(notification.event?.eventTitle)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2 mb-1">
+                          <p className="text-xs font-medium text-gray-900 truncate">
+                            {notification.title}
+                          </p>
+                          {!notification.read && (
+                            <span className="flex-shrink-0 h-2 w-2 rounded-full bg-blue-500"></span>
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-700 leading-relaxed line-clamp-2">
+                          {notification.message}
+                        </p>
+                        <div className="flex items-center justify-between mt-2">
+                          <p className="text-[10px] text-gray-500">
+                            {formatTimeAgo(notification.createdAt)}
+                          </p>
+                          {notification.status && (
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full border ${getStatusColor(notification.status)}`}>
+                              {notification.status}
+                            </span>
+                          )}
+                        </div>
+                        {notification.event?.eventTitle && (
+                          <div className="flex items-center gap-1 mt-1">
+                            <span className="text-[10px] text-gray-500">Event:</span>
+                            <span className="text-[10px] text-gray-700 font-medium truncate">
+                              {notification.event.eventTitle}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  // Empty state
+                  <div className="flex flex-col items-center justify-center p-6 text-center">
+                    <Bell className="h-10 w-10 text-gray-300 mb-3" />
+                    <p className="text-sm text-gray-500">No notifications yet</p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      We'll notify you when something arrives
+                    </p>
                   </div>
-                ))}
+                )}
               </div>
-              <div className="p-2 border-t border-gray-200">
-                <button className="w-full text-xs text-[#00a651] hover:text-[#008f45] font-medium py-2 text-center transition-colors">
-                  View All
-                </button>
-              </div>
+              {notificationsData?.data?.length > 0 && (
+                <div className="p-2 border-t border-gray-200">
+                  <button
+                    onClick={handleViewAllClick}
+                    className="w-full cursor-pointer text-xs text-[#00a651] hover:text-[#008f45] font-medium py-2 text-center transition-colors"
+                  >
+                    View All Notifications
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -149,24 +255,33 @@ export default function MainlandHeader() {
           <button
             onClick={handleProfileClick}
             className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-full hover:bg-gray-100 transition-colors cursor-pointer"
+            disabled={personalInformationLoading}
           >
             <Avatar className="h-9 w-9 ring-2 ring-gray-200">
-              <AvatarImage src={userImage} alt={userName} />
-              <AvatarFallback className="bg-blue-100 text-blue-600 font-semibold text-xs">
-                {userName
-                  .split(" ")
-                  .map((n) => n[0])
-                  .join("")
-                  .toUpperCase()}
-              </AvatarFallback>
+              {personalInformation?.data?.image ? (
+                <Image
+                  src={baseURL + personalInformation?.data?.image}
+                  alt={`${personalInformation?.data?.name || 'User'} profile`}
+                  width={36}
+                  height={36}
+                  className="h-9 w-9 object-cover"
+                  onError={(e) => {
+                    // Fallback to avatar on error
+                    e.currentTarget.style.display = 'none';
+                  }}
+                />
+              ) : null}
+
             </Avatar>
             <div className="flex flex-col items-start">
-              <span className="text-sm font-medium text-gray-900">
-                {userName}
+              <span className="text-sm font-medium text-gray-900 line-clamp-1 max-w-[120px]">
+                {personalInformation?.data?.name || 'User'}
               </span>
-              <span className="text-[11px] text-gray-500">{userRole}</span>
+              <span className="text-[11px] text-gray-500 capitalize">
+                {personalInformation?.data?.role?.toLowerCase() || 'User'}
+              </span>
             </div>
-            <ChevronDown className="h-4 w-4 text-gray-500" />
+            <ChevronDown className="h-4 w-4 text-gray-500 flex-shrink-0" />
           </button>
 
           {/* Dropdown Menu */}

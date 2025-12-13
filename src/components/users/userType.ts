@@ -1,6 +1,6 @@
 export interface User {
   _id: string;
-  accountNumber: string;
+  accountNumber?: string;
   name: string;
   role: 'USER' | 'ADMIN' | 'ORGANIZER' | 'Attendee' | 'Organizer';
   email: string;
@@ -9,8 +9,8 @@ export interface User {
   location: string;
   joinDate: string;
   avatar: string;
-  status: string;
-  verified: boolean;
+  status: 'Active' | 'Blocked' | 'Inactive' | 'Pending'; // More specific status types
+  verified?: boolean;
   // Additional fields from API
   personalInfo?: {
     phone?: string;
@@ -27,15 +27,15 @@ export interface User {
   sellAmount?: number;
   withDrawAmount?: number;
   // Attendee specific fields
-  totalTicketsSold?: number;
+  totalTicketsPurchased?: number;
   totalSpend?: string;
   totalEarn?: string;
-  totalTicketsPurchased?: number;
   // Organizer specific fields
   totalEvents?: number;
-  activeEvents?: string;
+  activeEvents?: number;
   totalTicketsSoldOrg?: number;
   totalRevenue?: string;
+  totalSold?: number;
 }
 
 export interface TicketActivity {

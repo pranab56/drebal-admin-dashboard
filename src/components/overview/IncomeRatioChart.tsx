@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from 'react';
 import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
@@ -28,12 +27,15 @@ interface TooltipProps {
 
 interface IncomeRatioChartProps {
   incomeRatioData?: IncomeRatioData;
+  selectedYear: string;
+  onYearChange: (year: string) => void;
 }
 
-function IncomeRatioChart({ incomeRatioData }: IncomeRatioChartProps) {
-  const [selectedYear, setSelectedYear] = useState(
-    incomeRatioData?.year?.toString() || "2025"
-  );
+function IncomeRatioChart({
+  incomeRatioData,
+  selectedYear,
+  onYearChange
+}: IncomeRatioChartProps) {
 
   // Transform API data to chart format
   const transformData = (apiData: IncomeRatioData['data'] = []): ChartData[] => {
@@ -61,16 +63,16 @@ function IncomeRatioChart({ incomeRatioData }: IncomeRatioChartProps) {
     return null;
   };
 
-  // Generate year options based on available data
+  // Generate year options
   const currentYear = new Date().getFullYear();
   const yearOptions = Array.from(
-    { length: 5 },
+    { length: 3 },
     (_, i) => (currentYear - i).toString()
-  );
+  ).reverse();
 
   // Calculate max value for Y-axis ticks
   const maxValue = Math.max(...chartData.map(d => d.value));
-  const maxTick = Math.ceil(maxValue / 1000) * 1000;
+  const maxTick = Math.ceil(maxValue / 1000) * 1000 || 1000;
   const tickCount = 6;
   const tickStep = maxTick / (tickCount - 1);
   const ticks = Array.from(
@@ -84,12 +86,15 @@ function IncomeRatioChart({ incomeRatioData }: IncomeRatioChartProps) {
         <CardTitle className="text-lg font-semibold text-gray-900">
           Income Ratio
         </CardTitle>
-        <Select value={selectedYear} onValueChange={setSelectedYear}>
+        <Select
+          value={selectedYear}
+          onValueChange={onYearChange}
+        >
           <SelectTrigger className="w-[100px] h-9 border-gray-200">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {yearOptions.map(year => (
+            {yearOptions?.reverse().map(year => (
               <SelectItem key={year} value={year}>
                 {year}
               </SelectItem>

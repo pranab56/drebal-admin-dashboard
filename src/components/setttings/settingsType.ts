@@ -16,7 +16,7 @@ export interface MenuItem {
 }
 
 export interface PersonalInfoForm {
-  fullName: string;
+  name: string;
   email: string;
   contact: string;
 }

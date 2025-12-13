@@ -63,11 +63,10 @@ export default function UserTable({ users, onViewUser, onBlockUser }: UserTableP
                 {user.name}
               </TableCell>
               <TableCell className="text-sm text-gray-600">
-                <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
-                  user.role === 'Organizer' ? 'bg-purple-100 text-purple-800' :
-                  user.role === 'Attendee' ? 'bg-blue-100 text-blue-800' :
-                  'bg-gray-100 text-gray-800'
-                }`}>
+                <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${user.role === 'Organizer' ? 'bg-purple-100 text-purple-800' :
+                    user.role === 'Attendee' ? 'bg-blue-100 text-blue-800' :
+                      'bg-gray-100 text-gray-800'
+                  }`}>
                   {user.role}
                 </span>
               </TableCell>
@@ -77,10 +76,10 @@ export default function UserTable({ users, onViewUser, onBlockUser }: UserTableP
               <TableCell className="text-sm text-gray-600">{user.location}</TableCell>
               <TableCell className="text-sm text-gray-600">{user.joinDate}</TableCell>
               <TableCell className="text-sm text-gray-600">
-                <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
-                  user.status === 'Active' ? 'bg-green-100 text-green-800' :
-                  'bg-red-100 text-red-800'
-                }`}>
+                <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${user.status === 'Active' ? 'bg-green-100 text-green-800' :
+                    user.status === 'Blocked' ? 'bg-red-100 text-red-800' :
+                      'bg-yellow-100 text-yellow-800'
+                  }`}>
                   {user.status}
                 </span>
               </TableCell>
@@ -97,7 +96,7 @@ export default function UserTable({ users, onViewUser, onBlockUser }: UserTableP
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8 text-red-600 hover:bg-red-50"
+                    className={`h-8 w-8 ${user.status === 'Active' ? 'text-red-600 hover:bg-red-50' : 'text-green-600 hover:bg-green-50'}`}
                     onClick={() => onBlockUser(user)}
                   >
                     <XCircle className="h-4 w-4" />

@@ -6,6 +6,7 @@ import {
   Layers,
   User
 } from "lucide-react";
+import { useState } from "react";
 import { useGetAllOverviewQuery } from '../../features/overview/overview';
 import IncomeRatioChart from './IncomeRatioChart';
 import RecentUsersTable from './RecentUsersTable';
@@ -14,7 +15,23 @@ import TicketsSellingChart from './TicketsSellingChart';
 
 // Main Dashboard Component
 export default function MainlandDashboard() {
-  const { data, isLoading, isError } = useGetAllOverviewQuery({});
+  const [selectedYear, setSelectedYear] = useState<string>(
+    new Date().getFullYear().toString()
+  );
+  const [selectedMonth, setSelectedMonth] = useState<string>("");
+
+  const { data, isLoading, isError, refetch } = useGetAllOverviewQuery({
+    year: selectedYear,
+    month: selectedMonth || undefined
+  });
+
+  const handleYearChange = (year: string) => {
+    setSelectedYear(year);
+  };
+
+  const handleMonthChange = (month: string) => {
+    setSelectedMonth(month);
+  };
 
   if (isLoading) {
     return (
@@ -75,10 +92,18 @@ export default function MainlandDashboard() {
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 h-full">
-          <IncomeRatioChart incomeRatioData={incomeRatio} />
+          <IncomeRatioChart
+            incomeRatioData={incomeRatio}
+            selectedYear={selectedYear}
+            onYearChange={handleYearChange}
+          />
         </div>
         <div className='h-full'>
-          <TicketsSellingChart ticketsData={ticketsSelling} />
+          <TicketsSellingChart
+            ticketsData={ticketsSelling}
+            selectedMonth={selectedMonth}
+            onMonthChange={handleMonthChange}
+          />
         </div>
       </div>
 

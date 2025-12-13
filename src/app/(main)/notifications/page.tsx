@@ -11,31 +11,81 @@ import {
   useGetAllNotificationQuery
 } from '../../../features/notification/notifications';
 
+interface Notification {
+  _id: string;
+  eventId: string;
+  eventTitle: string;
+  title: string;
+  message: string;
+  type: string;
+  status: string;
+  read: boolean;
+  createdAt: string;
+}
+
+interface NotificationsResponse {
+  data: Notification[];
+  meta: {
+    total: number;
+    page: number;
+    totalPage: number;
+  };
+}
+
 export default function EventNotificationManagement() {
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
 
-  const { data: notificationsData, isLoading, refetch } = useGetAllNotificationQuery({});
-  const [adminSendToBroadcast, { isLoading: isBroadcasting }] = useAdminSendToboardCastMutation();
-  const [adminRejected, { isLoading: isRejecting }] = useAdminRejectedMutation();
+  // Track loading states for each notification individually
+  const [broadcastingIds, setBroadcastingIds] = useState<Set<string>>(new Set());
+  const [rejectingIds, setRejectingIds] = useState<Set<string>>(new Set());
 
-  const handleBroadcast = async (eventId: string) => {
+  const { data: notificationsData, isLoading, refetch } = useGetAllNotificationQuery({}) as {
+    data: NotificationsResponse;
+    isLoading: boolean;
+    refetch: () => void;
+  };
+
+  const [adminSendToBroadcast] = useAdminSendToboardCastMutation();
+  const [adminRejected] = useAdminRejectedMutation();
+
+  const handleBroadcast = async (eventId: string, notificationId: string) => {
+    // Add this notification ID to broadcasting set
+    setBroadcastingIds(prev => new Set(prev).add(notificationId));
+
     try {
       const response = await adminSendToBroadcast(eventId).unwrap();
       toast.success(response.message || 'Notification broadcasted successfully');
       refetch(); // Refresh the notifications list
-    } catch (error) {
-      toast.error('Failed to broadcast notification:', error);
+    } catch (error: any) {
+      toast.error(`Failed to broadcast notification: ${error?.data?.message || error.message || 'Unknown error'}`);
+    } finally {
+      // Remove this notification ID from broadcasting set
+      setBroadcastingIds(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(notificationId);
+        return newSet;
+      });
     }
   };
 
-  const handleReject = async (eventId: string) => {
+  const handleReject = async (eventId: string, notificationId: string) => {
+    // Add this notification ID to rejecting set
+    setRejectingIds(prev => new Set(prev).add(notificationId));
+
     try {
       const response = await adminRejected(eventId).unwrap();
       toast.success(response.message || 'Notification rejected successfully');
       refetch(); // Refresh the notifications list
-    } catch (error) {
-      toast.error('Failed to reject notification:', error);
+    } catch (error: any) {
+      toast.error(`Failed to reject notification: ${error?.data?.message || error.message || 'Unknown error'}`);
+    } finally {
+      // Remove this notification ID from rejecting set
+      setRejectingIds(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(notificationId);
+        return newSet;
+      });
     }
   };
 
@@ -123,59 +173,67 @@ export default function EventNotificationManagement() {
                   </tr>
                 </thead>
                 <tbody>
-                  {paginatedNotifications.map((notification, index) => (
-                    <tr
-                      key={notification._id}
-                      className={`border-b last:border-b-0 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}
-                    >
-                      <td className="p-4">
-                        <div className="text-sm">
-                          <div className="text-gray-900 font-medium">{notification.eventTitle}</div>
-                          <div className="text-gray-600 text-xs mt-1">
-                            Type: {notification.type}
+                  {paginatedNotifications.map((notification, index) => {
+                    const isBroadcasting = broadcastingIds.has(notification._id);
+                    const isRejecting = rejectingIds.has(notification._id);
+
+                    return (
+                      <tr
+                        key={notification._id}
+                        className={`border-b last:border-b-0 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}
+                      >
+                        <td className="p-4">
+                          <div className="text-sm">
+                            <div className="text-gray-900 font-medium">{notification.eventTitle}</div>
+                            <div className="text-gray-600 text-xs mt-1">
+                              Type: {notification.type}
+                            </div>
                           </div>
-                        </div>
-                      </td>
-                      <td className="p-4 text-sm text-gray-900">
-                        {formatDate(notification.createdAt)}
-                      </td>
-                      <td className="p-4 text-sm text-gray-600 max-w-md">
-                        <div>
-                          <div className="font-medium text-gray-900">{notification.title}</div>
-                          <div className="mt-1">{notification.message}</div>
-                        </div>
-                      </td>
-                      <td className="p-4">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${notification.status === 'success'
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-yellow-100 text-yellow-800'
-                          }`}>
-                          {notification.status}
-                        </span>
-                        <div className="text-xs text-gray-500 mt-1">
-                          {notification.read ? 'Read' : 'Unread'}
-                        </div>
-                      </td>
-                      <td className="p-4">
-                        <div className="flex gap-3">
-                          <button
-                            onClick={() => handleBroadcast(notification.eventId)}
-                            disabled={isBroadcasting}
-                            className="text-sm cursor-pointer font-medium text-gray-700 hover:text-gray-900 underline disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            {isBroadcasting ? 'Broadcasting...' : 'Broadcast'}
-                          </button>
-                          <button
-                            onClick={() => handleReject(notification.eventId)}
-                            disabled={isRejecting}
-                            className="text-sm font-medium cursor-pointer text-red-600 hover:text-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            {isRejecting ? 'Rejecting...' : 'Reject'}
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                        <td className="p-4 text-sm text-gray-900">
+                          {formatDate(notification.createdAt)}
+                        </td>
+                        <td className="p-4 text-sm text-gray-600 max-w-md">
+                          <div>
+                            <div className="font-medium text-gray-900">{notification.title}</div>
+                            <div className="mt-1">{notification.message}</div>
+                          </div>
+                        </td>
+                        <td className="p-4">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${notification.status === 'success'
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-yellow-100 text-yellow-800'
+                            }`}>
+                            {notification.status}
+                          </span>
+                          <div className="text-xs text-gray-500 mt-1">
+                            {notification.read ? 'Read' : 'Unread'}
+                          </div>
+                        </td>
+                        <td className="p-4">
+                          <div className="flex gap-3">
+                            <button
+                              onClick={() => handleBroadcast(notification.eventId, notification._id)}
+                              disabled={isBroadcasting || isRejecting}
+                              className="text-sm cursor-pointer font-medium text-gray-700 hover:text-gray-900 underline disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                            >
+
+
+                              {isBroadcasting && <Loader2 className="w-3 h-3 animate-spin" />}Broadcast
+
+                            </button>
+                            <button
+                              onClick={() => handleReject(notification.eventId, notification._id)}
+                              disabled={isRejecting || isBroadcasting}
+                              className="text-sm font-medium cursor-pointer text-red-600 hover:text-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                            >
+                              {isRejecting && <Loader2 className="w-3 h-3 animate-spin" />} Reject
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </>

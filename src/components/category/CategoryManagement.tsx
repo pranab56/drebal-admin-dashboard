@@ -133,11 +133,10 @@ const CategoryManagement: React.FC = () => {
         formData.append('coverImage', subCategoryData.imageFile);
       }
 
-      await editSubCategory({
+      const response = await editSubCategory({
         id: selectedSubCategory._id,
-        data: formData
+        data: { title: subCategoryData.name }
       }).unwrap();
-
       refetchSubCategories();
       setIsEditSubCategoryModalOpen(false);
       setSelectedSubCategory(null);

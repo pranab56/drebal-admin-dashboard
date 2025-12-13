@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Eye, EyeOff, Lock } from 'lucide-react';
 import { useState } from 'react';
+import toast from 'react-hot-toast';
 import { useChangePasswordMutation } from '../../../features/settings/settingsApi';
 import { BaseModalProps, PasswordForm, ShowPasswords } from '../settingsType';
 
@@ -110,7 +111,7 @@ export const ChangePasswordModal = ({ onClose }: BaseModalProps) => {
       const response = await changePassword(requestData).unwrap();
 
       // Handle successful response
-      alert('Password updated successfully!');
+      toast.success(response.message || 'Password updated successfully!');
 
       // Reset form and close modal
       setPasswords({
@@ -122,12 +123,11 @@ export const ChangePasswordModal = ({ onClose }: BaseModalProps) => {
       onClose();
 
     } catch (error: any) {
-      console.error('Error changing password:', error);
-
+      toast.error('Error changing password:', error);
       // Handle different types of errors
       if (error.data?.message) {
         // Server error message
-        alert(error.data.message);
+        toast.error(error.data.message);
       } else if (error.data?.errors) {
         // Validation errors from server
         const serverErrors = error.data.errors;
@@ -138,14 +138,14 @@ export const ChangePasswordModal = ({ onClose }: BaseModalProps) => {
         });
       } else if (error.status === 401) {
         // Unauthorized - incorrect current password
-        alert('Current password is incorrect');
+        toast.error('Current password is incorrect');
         setErrors(prev => ({ ...prev, old: 'Current password is incorrect' }));
       } else if (error.status === 400) {
         // Bad request
-        alert('Invalid request. Please check your input.');
+        toast.error('Invalid request. Please check your input.');
       } else {
         // Generic error
-        alert('Failed to change password. Please try again.');
+        toast.error('Failed to change password. Please try again.');
       }
     }
   };

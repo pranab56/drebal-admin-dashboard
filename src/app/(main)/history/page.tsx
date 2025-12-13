@@ -10,7 +10,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { ChevronLeft, ChevronRight, Eye, Loader2, Search } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { DeleteHistoryItem, useGetAllHistoryQuery } from '../../../features/history/historyApi';
+import { useGetAllHistoryQuery } from '../../../features/history/historyApi';
 
 export default function UserAccountDeleteHistory() {
   const [currentPage, setCurrentPage] = useState(1);

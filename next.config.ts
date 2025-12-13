@@ -18,6 +18,10 @@ const nextConfig: NextConfig = {
         protocol: "http",
         hostname: "10.10.7.102",
       },
+      {
+        protocol: "https",
+        hostname: "i.ibb.co",
+      },
     ],
   },
   turbopack: {

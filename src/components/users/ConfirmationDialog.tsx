@@ -14,6 +14,7 @@ interface ConfirmationDialogProps {
   onConfirm: () => void;
   confirmText?: string;
   type?: 'report' | 'block';
+  isLoading?: boolean;
 }
 
 export default function ConfirmationDialog({
@@ -23,7 +24,8 @@ export default function ConfirmationDialog({
   message,
   onConfirm,
   confirmText = "Yes",
-  type = 'report'
+  type = 'report',
+  isLoading = false
 }: ConfirmationDialogProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -41,14 +43,23 @@ export default function ConfirmationDialog({
               variant="outline"
               className="px-8 h-10 border-gray-300"
               onClick={() => onOpenChange(false)}
+              disabled={isLoading}
             >
               No
             </Button>
             <Button
               className="bg-red-600 hover:bg-red-700 text-white px-8 h-10"
               onClick={onConfirm}
+              disabled={isLoading}
             >
-              {confirmText}
+              {isLoading ? (
+                <div className="flex items-center gap-2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  Processing...
+                </div>
+              ) : (
+                confirmText
+              )}
             </Button>
           </div>
         </div>

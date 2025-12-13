@@ -17,6 +17,59 @@ interface EventDetailsPageProps {
   onBack: () => void;
 }
 
+interface Category {
+  _id: string;
+  categoryId: {
+    _id: string;
+    title: string;
+  };
+  subCategory?: {
+    _id: string;
+    title: string;
+  }[];
+}
+
+interface Ticket {
+  _id: string;
+  type: string;
+  price: number;
+  availableUnits: number;
+  outstandingUnits: number;
+  earnedAmount: number;
+}
+
+interface EventData {
+  _id: string;
+  eventName: string;
+  eventCode: string;
+  description: string;
+  image: string;
+  streetAddress: string;
+  city: string;
+  state: string;
+  country: string;
+  eventDate: string;
+  startTime: string;
+  endTime: string;
+  ticketSaleStart: string;
+  preSaleStart: string;
+  totalEarned: number;
+  isFreeEvent: boolean;
+  createdAt: string;
+  updatedAt: string;
+  EventStatus: 'UnderReview' | 'Live' | 'Rejected';
+  organizerName: string;
+  organizerEmail: string;
+  organizerPhone: string;
+  category?: Category[];
+  tickets?: Ticket[];
+}
+
+interface EventDetailsResponse {
+  data: EventData;
+  // Add other response fields if needed
+}
+
 export default function EventDetailsPage({
   eventId,
   onBack,
@@ -32,7 +85,7 @@ export default function EventDetailsPage({
     try {
       setIsProcessing(true);
       const response = await approveEvent(eventId).unwrap();
-      console.log(response)
+      console.log(response);
       await refetch();
       setShowApproveModal(false);
     } catch (error) {
@@ -46,8 +99,8 @@ export default function EventDetailsPage({
   const handleReject = async () => {
     try {
       setIsProcessing(true);
-      const reponse = await approveEvent(eventId).unwrap();
-      console.log(reponse)
+      const response = await approveEvent(eventId).unwrap();
+      console.log(response);
       await refetch();
       setShowRejectModal(false);
     } catch (error) {
@@ -123,8 +176,8 @@ export default function EventDetailsPage({
     );
   }
 
-  const event = eventDetails.data;
-  const categories = event.category?.map(cat => cat.categoryId.title).join(', ') || 'N/A';
+  const event = (eventDetails as EventDetailsResponse).data;
+  const categories = event.category?.map(cat => cat?.categoryId?.title).join(', ') || 'N/A';
   const subCategories = event.category?.flatMap(cat =>
     cat.subCategory?.map(sub => sub.title)
   ).join(', ') || 'N/A';
