@@ -1,5 +1,6 @@
 "use client";
 
+import { FetchBaseQueryError } from '@reduxjs/toolkit/query';
 import { Eye, EyeOff, Lock, Mail } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -59,16 +60,14 @@ export default function LoginPage() {
       toast.success(response.message || 'Successfully logged in.');
       saveToken(response?.data?.Token);
       router.push('/');
-    } catch (error: any) {
-      console.log('Login error:', error?.data.message);
-      toast.error(error?.data.message || 'Failed to log in. Please try again.');
+    } catch (error) {
+      const err = error as FetchBaseQueryError & {
+        data?: { message?: string };
+      };
 
-      // Type-safe error handling
-      if (error instanceof Error) {
-        // Now you can safely access error.message
-        console.log('Error message:', error.message);
-
-      }
+      toast.error(
+        err?.data?.message || 'Failed to log in. Please try again.'
+      );
     }
 
 
