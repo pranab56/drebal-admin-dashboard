@@ -8,17 +8,52 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 
-function RecentUsersTable() {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(10); // Default to 10 to match API limit
+// Define user interface
+interface User {
+  _id: string;
+  name?: string;
+  email: string;
+  role: string;
+  createdAt: string;
+  personalInfo?: {
+    firstName?: string;
+    lastName?: string;
+    dateOfBirth?: string;
+    phone?: string;
+  };
+  address?: {
+    city?: string;
+    country?: string;
+  };
+}
 
-  console.log(searchQuery)
+// Define API meta interface
+interface ApiMeta {
+  page: number;
+  limit: number;
+  total: number;
+  totalPage: number;
+}
+
+// Define API response interface
+interface ApiResponse {
+  data: User[];
+  meta: ApiMeta;
+  message?: string;
+  success?: boolean;
+}
+
+function RecentUsersTable() {
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [rowsPerPage, setRowsPerPage] = useState<number>(10); // Default to 10 to match API limit
+
+  console.log(searchQuery);
 
   const { data, isLoading } = useGetAllUserQuery(searchQuery);
 
   // Format date to readable format
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string): string => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', {
       month: 'short',
@@ -28,7 +63,7 @@ function RecentUsersTable() {
   };
 
   // Format date with time
-  const formatDateTime = (dateString: string) => {
+  const formatDateTime = (dateString: string): string => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', {
       month: 'short',
@@ -41,7 +76,7 @@ function RecentUsersTable() {
   };
 
   // Calculate serial number based on page and index
-  const calculateSerialNumber = (index: number) => {
+  const calculateSerialNumber = (index: number): number => {
     return (currentPage - 1) * rowsPerPage + index + 1;
   };
 
@@ -60,8 +95,9 @@ function RecentUsersTable() {
     );
   }
 
-  const users = data?.data || [];
-  const meta = data?.meta || { page: 1, limit: 10, total: 0, totalPage: 1 };
+  const apiData = data as ApiResponse | undefined;
+  const users = apiData?.data || [];
+  const meta = apiData?.meta || { page: 1, limit: 10, total: 0, totalPage: 1 };
   const startItem = (meta.page - 1) * meta.limit + 1;
   const endItem = Math.min(meta.page * meta.limit, meta.total);
 
@@ -121,7 +157,7 @@ function RecentUsersTable() {
                   </TableCell>
                 </TableRow>
               ) : (
-                users.map((user: any, index: any) => (
+                users.map((user: User, index: number) => (
                   <TableRow
                     key={user._id}
                     className="hover:bg-gray-50 border-b h-14 border-gray-100 last:border-0"

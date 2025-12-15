@@ -9,29 +9,49 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Search } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import ConfirmationDialog from '../../../components/users/ConfirmationDialog';
 import Pagination from '../../../components/users/Pagination';
 import UserDetailsModal from '../../../components/users/UserDetailsModal';
 import UserTable from '../../../components/users/UserTable';
-import { User } from '../../../components/users/userType';
+import { ApiUser, User, UserRole } from '../../../components/users/userType';
 import { useBlockAndUnBlockMutation, useGetAllUserQuery, useGetSingleUserQuery } from '../../../features/users/usersApi';
 
+// Types for mock data
+interface TicketActivity {
+  eventName: string;
+  category: string;
+  ticketId: string;
+  quantity: number;
+  purchaseDate: string;
+  payment: 'Paid' | 'Pending';
+  eventDate: string;
+  attended: 'Upcoming' | 'Attended' | 'Cancelled';
+}
+
+interface EventActivity {
+  eventName: string;
+  venue: string;
+  ticketSold: string;
+  saleDate: string;
+  amount: string;
+}
+
 // Mock data for activity (you'll need to replace this with real API data)
-const mockTicketActivities = [
+const mockTicketActivities: TicketActivity[] = [
   {
     eventName: "Summer Music Festival",
     category: "Music",
     ticketId: "TKT-12345",
     quantity: 2,
     purchaseDate: "2024-10-15",
-    payment: 'Paid' as const,
+    payment: 'Paid',
     eventDate: "2024-12-20",
-    attended: 'Upcoming' as const,
+    attended: 'Upcoming',
   },
 ];
 
-const mockEventActivities = [
+const mockEventActivities: EventActivity[] = [
   {
     eventName: "Tech Conference 2024",
     venue: "Convention Center",
@@ -43,17 +63,18 @@ const mockEventActivities = [
 
 export default function MainlandUserList() {
   const [selectedRole, setSelectedRole] = useState("All");
-  const [selectedDate, setSelectedDate] = useState<Date>();
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [showReportDialog, setShowReportDialog] = useState(false);
+  console.log(showReportDialog);
   const [showBlockDialog, setShowBlockDialog] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
-  const [singleUserDetails, setSingleUserDetails] = useState<any>(null);
+  const [singleUserDetails, setSingleUserDetails] = useState<ApiUser | null>(null);
+  console.log(singleUserDetails);
 
   // Get all users with refetch option
   const {
@@ -76,14 +97,14 @@ export default function MainlandUserList() {
   const [blockAndUnBlock, { isLoading: blockAndUnBlockLoading }] = useBlockAndUnBlockMutation();
 
   // Function to map API user data to User type
-  const mapApiUserToUserType = (apiUser: any): User => {
+  const mapApiUserToUserType = useCallback((apiUser: ApiUser, additionalData?: ApiUser): User => {
     // Generate a simple account number from ID
     const accountNumber = `ACC-${apiUser._id.substring(0, 8).toUpperCase()}`;
 
     // Format role for display
-    const displayRole = apiUser.role === 'ORGANIZER' ? 'Organizer' :
+    const displayRole: UserRole = apiUser.role === 'ORGANIZER' ? 'Organizer' :
       apiUser.role === 'USER' ? 'Attendee' :
-        apiUser.role;
+        apiUser.role as UserRole;
 
     // Format date of birth
     const dob = apiUser.personalInfo?.dateOfBirth
@@ -124,7 +145,7 @@ export default function MainlandUserList() {
       _id: apiUser._id,
       accountNumber,
       name: apiUser.name,
-      role: displayRole as any,
+      role: displayRole,
       email: apiUser.email,
       dob,
       phone,
@@ -135,68 +156,73 @@ export default function MainlandUserList() {
       verified: false,
       personalInfo: apiUser.personalInfo,
       address: apiUser.address,
-      // Add organizer stats if available in single user data
-      totalEvents: singleUserDetails?.totalEvent,
-      activeEvents: singleUserDetails?.activeEvents,
-      totalTicketsSoldOrg: singleUserDetails?.totalSold,
-      totalRevenue: singleUserDetails?.totalRevenue ? `$${singleUserDetails.totalRevenue}` : "$0",
-      totalSold: singleUserDetails?.totalSold,
-      // Add attendee stats if available in single user data
-      totalTicketsPurchased: singleUserDetails?.totalTicketSold,
-      totalSpend: singleUserDetails?.purchaseQuantity ? `$${singleUserDetails.purchaseQuantity}` : "$0"
+      // Add organizer stats if available in additional data
+      totalEvents: additionalData?.totalEvent,
+      activeEvents: additionalData?.activeEvents,
+      totalTicketsSoldOrg: additionalData?.totalSold,
+      totalRevenue: additionalData?.totalRevenue ? `$${additionalData.totalRevenue}` : "$0",
+      totalSold: additionalData?.totalSold,
+      // Add attendee stats if available in additional data
+      totalTicketsPurchased: additionalData?.totalTicketSold,
+      totalSpend: additionalData?.purchaseQuantity ? `$${additionalData.purchaseQuantity}` : "$0"
     };
-  };
+  }, []);
 
+  // Load initial user list - runs only when allUsersData changes
   useEffect(() => {
     if (allUsersData?.success && allUsersData.data) {
       const apiUsers = Array.isArray(allUsersData.data) ? allUsersData.data : [allUsersData.data];
 
-      // Map API data to User type
-      const mappedUsers = apiUsers.map(mapApiUserToUserType);
+      // Map API data to User type without additional data
+      const mappedUsers = apiUsers.map((user: ApiUser) => mapApiUserToUserType(user));
 
       setUsers(mappedUsers);
       setFilteredUsers(mappedUsers);
     }
-  }, [allUsersData]);
+  }, [allUsersData, mapApiUserToUserType]);
 
+  // Update single user details when fetched
   useEffect(() => {
     if (singleUserData?.success && singleUserData.data) {
-      setSingleUserDetails(singleUserData.data);
+      const userData = singleUserData.data as ApiUser;
+      setSingleUserDetails(userData);
 
       // Update the selected user with additional details
       if (selectedUser) {
-        const updatedUser = {
+        const updatedUser: User = {
           ...selectedUser,
           // Update organizer stats
-          totalEvents: singleUserData.data.totalEvent,
-          activeEvents: singleUserData.data.activeEvents,
-          totalTicketsSoldOrg: singleUserData.data.totalSold,
-          totalRevenue: singleUserData.data.totalRevenue ? `$${singleUserData.data.totalRevenue}` : "$0",
-          totalSold: singleUserData.data.totalSold,
+          totalEvents: userData.totalEvent,
+          activeEvents: userData.activeEvents,
+          totalTicketsSoldOrg: userData.totalSold,
+          totalRevenue: userData.totalRevenue ? `$${userData.totalRevenue}` : "$0",
+          totalSold: userData.totalSold,
           // Update attendee stats
-          totalTicketsPurchased: singleUserData.data.totalTicketSold,
-          totalSpend: singleUserData.data.purchaseQuantity ? `$${singleUserData.data.purchaseQuantity}` : "$0",
+          totalTicketsPurchased: userData.totalTicketSold,
+          totalSpend: userData.purchaseQuantity ? `$${userData.purchaseQuantity}` : "$0",
           // Update user info from nested structure
-          ...(singleUserData.data.user && {
-            ...singleUserData.data.user,
-            name: singleUserData.data.user.name || selectedUser.name,
-            email: singleUserData.data.user.email || selectedUser.email,
-            avatar: singleUserData.data.user.image || selectedUser.avatar,
+          ...(userData.user && {
+            ...userData.user,
+            name: userData.user.name || selectedUser.name,
+            email: userData.user.email || selectedUser.email,
+            avatar: userData.user.image || selectedUser.avatar,
             personalInfo: {
               ...selectedUser.personalInfo,
-              ...singleUserData.data.user.personalInfo
+              ...userData.user.personalInfo
             },
             address: {
               ...selectedUser.address,
-              ...singleUserData.data.user.address
+              ...userData.user.address
             }
           })
         };
         setSelectedUser(updatedUser);
       }
     }
-  }, [singleUserData]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [singleUserData]); // selectedUser is intentionally excluded as it's managed separately
 
+  // Filter users
   useEffect(() => {
     if (users.length > 0) {
       const filtered = users.filter((user) => {
@@ -237,7 +263,7 @@ export default function MainlandUserList() {
       // Check if the response contains the updated user data
       if (response.success && response.data) {
         // If API returns the updated user, update the specific user
-        const updatedUser = mapApiUserToUserType(response.data);
+        const updatedUser = mapApiUserToUserType(response.data as ApiUser);
 
         // Update the specific user in the users array
         setUsers(prevUsers =>
@@ -350,7 +376,7 @@ export default function MainlandUserList() {
       {/* User Details Modal */}
       <UserDetailsModal
         user={selectedUser}
-        singleUserData={singleUserData?.data}
+        singleUserData={singleUserData?.data as ApiUser}
         isOpen={isModalOpen}
         onClose={() => {
           setIsModalOpen(false);

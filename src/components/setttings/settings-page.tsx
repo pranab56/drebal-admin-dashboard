@@ -32,7 +32,7 @@ export const SettingsPage = ({
 
   const handleMenuClick = (id: string) => {
     if (id === 'faqs') {
-      onNavigate('faq');
+      onNavigate('faq-management');
     } else {
       onOpenModal(id as ModalType);
     }
@@ -50,8 +50,8 @@ export const SettingsPage = ({
             key={item.id}
             onClick={() => handleMenuClick(item.id)}
             className={`w-full flex items-center justify-between cursor-pointer p-4 rounded-lg transition-colors ${item.highlighted
-                ? 'bg-green-50 border-2 border-green-500'
-                : 'bg-gray-100 hover:bg-gray-200'
+              ? 'bg-green-50 border-2 border-green-500'
+              : 'bg-gray-100 hover:bg-gray-200'
               }`}
           >
             <span className="text-gray-800">{item.label}</span>

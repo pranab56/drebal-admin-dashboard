@@ -11,12 +11,13 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Upload, X } from 'lucide-react';
+import Image from 'next/image';
 import { useState } from 'react';
 
 interface AddCategoryModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAdd: (categoryData: FormData) => void; // Changed to accept FormData
+  onAdd: (categoryData: FormData) => void;
   isLoading?: boolean;
 }
 
@@ -36,8 +37,15 @@ const AddCategoryModal: React.FC<AddCategoryModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onAdd(formData);
 
+    // Convert to FormData
+    const formDataToSend = new FormData();
+    formDataToSend.append('name', formData.name);
+    if (formData.image) {
+      formDataToSend.append('image', formData.image);
+    }
+
+    onAdd(formDataToSend);
   };
 
   const handleImageUpload = async (file: File) => {
@@ -162,9 +170,11 @@ const AddCategoryModal: React.FC<AddCategoryModalProps> = ({
               </div>
             ) : (
               <div className="relative">
-                <img
+                <Image
                   src={getImagePreview()}
                   alt="Preview"
+                  width={1000}
+                  height={1000}
                   className="w-full h-48 object-cover rounded-lg"
                 />
                 <Button
@@ -201,5 +211,4 @@ const AddCategoryModal: React.FC<AddCategoryModalProps> = ({
     </Dialog>
   );
 };
-
 export default AddCategoryModal;

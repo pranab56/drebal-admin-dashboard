@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -16,16 +16,44 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ChevronLeft, ChevronRight, Search } from "lucide-react";
+import Image from "next/image";
 import { EventActivity, TicketActivity, User } from './userType';
+
+// Define interface for live event data
+interface LiveEvent {
+  eventName: string;
+  eventCode: string;
+  organizerName: string;
+  ticketSaleStart: string;
+  outstandingUnits: number;
+}
+
+// Define interface for single user data
+interface SingleUserData {
+  totalEvent?: number;
+  activeEvents?: number;
+  totalSold?: number;
+  totalRevenue?: number;
+  totalTicketSold?: number;
+  purchaseQuantity?: number;
+  allLiveEvent?: LiveEvent[];
+  user?: {
+    name?: string;
+    email?: string;
+    image?: string;
+    personalInfo?: Record<string, unknown>;
+    address?: Record<string, unknown>;
+  };
+}
 
 interface UserDetailsModalProps {
   user: User | null;
-  singleUserData?: any;
+  singleUserData?: SingleUserData;
   isOpen: boolean;
   onClose: () => void;
-  onReport: () => void;
-  ticketActivities: TicketActivity[];
-  eventActivities: EventActivity[];
+  onReport?: () => void;
+  ticketActivities?: TicketActivity[];
+  eventActivities?: EventActivity[];
   isLoading?: boolean;
 }
 
@@ -34,9 +62,7 @@ export default function UserDetailsModal({
   singleUserData,
   isOpen,
   onClose,
-  onReport,
-  ticketActivities,
-  eventActivities,
+  eventActivities = [],
   isLoading = false,
 }: UserDetailsModalProps) {
   if (!user) return null;
@@ -53,6 +79,7 @@ export default function UserDetailsModal({
     return (
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col p-0">
+          <DialogTitle className="sr-only">Loading User Details</DialogTitle>
           <div className="flex items-center justify-center h-64">
             <div className="text-center">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto"></div>
@@ -67,17 +94,24 @@ export default function UserDetailsModal({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col p-0">
+        <DialogTitle className="sr-only">
+          {user.name} - {user.role} Details
+        </DialogTitle>
+
         {isAttendee ? (
           <>
             {/* Attendee Profile Header */}
-            <div className=" p-8 rounded-t-lg">
+            <div className="p-8 rounded-t-lg">
               <div className="flex flex-col items-center text-center">
                 <div className="relative mb-4">
-                  <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-white shadow-lg">
-                    <img
-                      src={user.avatar}
+                  <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-white shadow-lg relative">
+                    <Image
+                      src={user.avatar || "/default-avatar.png"}
                       alt={user.name}
-                      className="w-full h-full object-cover"
+                      fill
+                      className="object-cover"
+                      sizes="128px"
+                      priority
                     />
                   </div>
                   <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2">
@@ -119,7 +153,7 @@ export default function UserDetailsModal({
 
               {/* Stats Cards */}
               <div className="flex justify-center gap-10">
-                <div className=" w-full bg-[#E6F4EA] rounded-lg">
+                <div className="w-full bg-[#E6F4EA] rounded-lg">
                   <div className="flex items-center justify-center mb-4 py-5 text-center">
                     <div>
                       <p className="text-gray-700 text-sm mb-1">Total Tickets Purchased</p>
@@ -129,7 +163,7 @@ export default function UserDetailsModal({
                 </div>
 
                 <div className='bg-[#E6F4EA] w-full rounded-lg'>
-                  <div className="flex items-center justify-center text-center  py-5 mb-4 w-full ">
+                  <div className="flex items-center justify-center text-center py-5 mb-4 w-full">
                     <div>
                       <p className="text-gray-700 text-sm mb-1">Total Spend</p>
                       <p className="text-4xl font-bold text-gray-900">{attendeeStats?.purchaseQuantity ? `$${attendeeStats.purchaseQuantity}` : user.totalSpend || "$0"}</p>
@@ -154,7 +188,7 @@ export default function UserDetailsModal({
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {attendeeStats.allLiveEvent.map((event: any, index: number) => (
+                        {attendeeStats.allLiveEvent.map((event: LiveEvent, index: number) => (
                           <TableRow key={index} className="hover:bg-gray-50">
                             <TableCell className="text-sm text-gray-900">{event.eventName}</TableCell>
                             <TableCell className="text-sm text-gray-600">{event.eventCode}</TableCell>
@@ -185,12 +219,14 @@ export default function UserDetailsModal({
                 <div className="grid grid-cols-3 gap-6">
                   {/* Left Column - Profile */}
                   <div className="col-span-1">
-                    <div className="bg-white rounded-3xl p-6 flex flex-col items-center justify-center h-full ">
-                      <div className="w-20 h-20 rounded-full overflow-hidden mb-4 border-4 border-white shadow-md">
-                        <img
-                          src={user.avatar}
+                    <div className="bg-white rounded-3xl p-6 flex flex-col items-center justify-center h-full">
+                      <div className="w-20 h-20 rounded-full overflow-hidden mb-4 border-4 border-white shadow-md relative">
+                        <Image
+                          src={user.avatar || "/default-avatar.png"}
                           alt="Profile"
-                          className="w-full h-full object-cover"
+                          fill
+                          className="object-cover"
+                          sizes="80px"
                         />
                       </div>
                       <h2 className="text-lg font-bold text-gray-900 mb-2">{user.name}</h2>
@@ -203,7 +239,7 @@ export default function UserDetailsModal({
                   {/* Right Column - Stats Grid */}
                   <div className="col-span-2 grid grid-cols-2 gap-6">
                     {/* Total Events */}
-                    <div className="bg-green-50 rounded-3xl  p-6 flex flex-col items-center justify-center">
+                    <div className="bg-green-50 rounded-3xl p-6 flex flex-col items-center justify-center">
                       <p className="text-gray-600 text-sm mb-2">Total Events</p>
                       <p className="text-4xl font-bold text-gray-900">{organizerStats?.totalEvent || user.totalEvents || 0}</p>
                     </div>
@@ -261,7 +297,7 @@ export default function UserDetailsModal({
                     </TableHeader>
                     <TableBody>
                       {organizerStats?.allLiveEvent && organizerStats.allLiveEvent.length > 0 ? (
-                        organizerStats.allLiveEvent.map((event: any, index: number) => (
+                        organizerStats.allLiveEvent.map((event: LiveEvent, index: number) => (
                           <TableRow key={index} className="hover:bg-gray-50">
                             <TableCell className="text-sm text-gray-900">{event.eventName}</TableCell>
                             <TableCell className="text-sm text-gray-600">{event.eventCode}</TableCell>

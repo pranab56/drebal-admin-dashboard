@@ -20,10 +20,19 @@ import {
 import { useState } from 'react';
 import { Category } from './types/category';
 
+// Define the SubCategory form data interface
+interface SubCategoryFormData {
+  name: string;
+  categoryId: string;
+  description?: string;
+  imageFile?: File;
+}
+
+// Define props interface
 interface AddSubCategoryModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAdd: (subCategory: any) => void;
+  onAdd: (subCategory: SubCategoryFormData) => void;
   categories: Category[];
   isLoading?: boolean;
 }
@@ -40,7 +49,6 @@ const AddSubCategoryModal: React.FC<AddSubCategoryModalProps> = ({
     categoryId: ''
   });
 
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -49,10 +57,8 @@ const AddSubCategoryModal: React.FC<AddSubCategoryModalProps> = ({
       return;
     }
 
-
-
-    const submitData = {
-      title: formData.title,
+    const submitData: SubCategoryFormData = {
+      name: formData.title,
       categoryId: formData.categoryId,
     };
 
@@ -101,7 +107,6 @@ const AddSubCategoryModal: React.FC<AddSubCategoryModalProps> = ({
               required
             />
           </div>
-
 
           <div className="flex justify-end gap-3 pt-4">
             <Button

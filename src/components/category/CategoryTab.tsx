@@ -11,16 +11,23 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Edit, Plus, Trash2 } from 'lucide-react';
+import Image from 'next/image';
 import { useState } from 'react';
+import {
+  useCreateCategoryMutation,
+  useDeleteCategoryMutation,
+  useEditCategoryMutation
+} from '../../features/category/categoryApi';
 import AddCategoryModal from './AddCategoryModal';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
 import EditCategoryModal from './EditCategoryModal';
 import { Category } from './types/category';
-import { 
-  useCreateCategoryMutation, 
-  useEditCategoryMutation, 
-  useDeleteCategoryMutation 
-} from '../../features/category/categoryApi';
+
+// Define form data interfaces to match EditCategoryModal
+interface CategoryFormData {
+  title: string;
+  image: File | null;
+}
 
 interface CategoryTabProps {
   categories: Category[];
@@ -31,33 +38,33 @@ const CategoryTab: React.FC<CategoryTabProps> = ({
   categories,
   onRefetch,
 }) => {
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState<boolean>(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState<boolean>(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState<boolean>(false);
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
 
   const [createCategory, { isLoading: isCreating }] = useCreateCategoryMutation();
   const [editCategory, { isLoading: isEditing }] = useEditCategoryMutation();
   const [deleteCategory, { isLoading: isDeleting }] = useDeleteCategoryMutation();
 
-  const handleAddCategory = async (categoryData: any) => {
+  const handleAddCategory = async (formData: FormData) => {
     try {
-      const formData = new FormData();
-      formData.append('title', categoryData.name);
-      if (categoryData.description) {
-        formData.append('description', categoryData.description);
-      }
-      
-      if (categoryData.image instanceof File) {
-        formData.append('coverImage', categoryData.image);
-      } else if (typeof categoryData.image === 'string') {
-        formData.append('coverImage', categoryData.image);
+      // Extract data from FormData
+      const name = formData.get('name') as string;
+      const image = formData.get('image') as File | null;
+
+      // Create new FormData for API
+      const apiFormData = new FormData();
+      apiFormData.append('title', name);
+
+      if (image) {
+        apiFormData.append('coverImage', image);
       }
 
-      await createCategory(formData).unwrap();
+      await createCategory(apiFormData).unwrap();
       onRefetch();
       setIsAddModalOpen(false);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error adding category:', error);
       alert('Error adding category');
     }
@@ -68,29 +75,26 @@ const CategoryTab: React.FC<CategoryTabProps> = ({
     setIsEditModalOpen(true);
   };
 
-  const handleSaveCategory = async (categoryData: any) => {
+  const handleSaveCategory = async (categoryData: CategoryFormData) => {
     if (!selectedCategory) return;
 
     try {
       const formData = new FormData();
-      formData.append('title', categoryData.name);
-      if (categoryData.description) {
-        formData.append('description', categoryData.description);
-      }
-      
-      if (categoryData.imageFile) {
-        formData.append('coverImage', categoryData.imageFile);
+      formData.append('title', categoryData.title);
+
+      if (categoryData.image) {
+        formData.append('coverImage', categoryData.image);
       }
 
-      await editCategory({ 
-        id: selectedCategory._id, 
-        data: formData 
+      await editCategory({
+        id: selectedCategory._id,
+        data: formData
       }).unwrap();
-      
+
       onRefetch();
       setIsEditModalOpen(false);
       setSelectedCategory(null);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error updating category:', error);
       alert('Error updating category');
     }
@@ -105,15 +109,15 @@ const CategoryTab: React.FC<CategoryTabProps> = ({
     if (!selectedCategory) return;
 
     try {
-      await deleteCategory({ 
-        id: selectedCategory._id, 
-        type: 'category' 
+      await deleteCategory({
+        id: selectedCategory._id,
+        type: 'category'
       }).unwrap();
-      
+
       onRefetch();
       setIsDeleteModalOpen(false);
       setSelectedCategory(null);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error deleting category:', error);
       alert('Error deleting category');
     }
@@ -123,10 +127,11 @@ const CategoryTab: React.FC<CategoryTabProps> = ({
     <div>
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-semibold">All Categories</h2>
-        <Button 
-          onClick={() => setIsAddModalOpen(true)} 
+        <Button
+          onClick={() => setIsAddModalOpen(true)}
           className="bg-green-600 hover:bg-green-700"
           disabled={isCreating}
+          type="button"
         >
           <Plus className="w-4 h-4 mr-2" />
           {isCreating ? 'Adding...' : 'Add Category'}
@@ -148,9 +153,11 @@ const CategoryTab: React.FC<CategoryTabProps> = ({
             {categories.map((category) => (
               <TableRow key={category._id}>
                 <TableCell>
-                  <img
+                  <Image
                     src={category.coverImage}
                     alt={category.title}
+                    width={1000}
+                    height={1000}
                     className="w-12 h-12 rounded-lg object-cover"
                   />
                 </TableCell>
@@ -170,6 +177,7 @@ const CategoryTab: React.FC<CategoryTabProps> = ({
                       size="sm"
                       onClick={() => handleEdit(category)}
                       disabled={isEditing}
+                      type="button"
                     >
                       <Edit className="w-4 h-4" />
                     </Button>
@@ -179,6 +187,7 @@ const CategoryTab: React.FC<CategoryTabProps> = ({
                       onClick={() => handleDelete(category)}
                       className="text-red-600 hover:text-red-700"
                       disabled={isDeleting}
+                      type="button"
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>

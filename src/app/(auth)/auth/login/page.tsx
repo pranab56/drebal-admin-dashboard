@@ -59,8 +59,14 @@ export default function LoginPage() {
       toast.success(response.message || 'Successfully logged in.');
       saveToken(response?.data?.Token);
       router.push('/');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.log('Login error:', error);
+
+      // Type-safe error handling
+      if (error instanceof Error) {
+        // Now you can safely access error.message
+        console.log('Error message:', error.message);
+      }
     }
   };
 

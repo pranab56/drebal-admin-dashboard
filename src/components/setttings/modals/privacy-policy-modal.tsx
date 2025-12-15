@@ -30,8 +30,6 @@ export const PrivacyPolicyModal = ({ onClose }: BaseModalProps) => {
   // Update mutation
   const [updatePrivacyPolicy, {
     isLoading: isUpdating,
-    isError: isUpdateError,
-    error: updateError
   }] = usePrivacyPolicyMutation();
 
   // Reset initialization when modal opens
@@ -106,21 +104,13 @@ export const PrivacyPolicyModal = ({ onClose }: BaseModalProps) => {
         toast.error(response.message || 'Failed to update privacy policy');
       }
 
-    } catch (error: any) {
-      console.error('Error updating privacy policy:', error);
+    } catch (error: unknown) {
+      console.log('Login error:', error);
 
-      if (error.data?.message) {
-        alert(error.data.message);
-      } else if (error.data?.errors) {
-        const errors = error.data.errors;
-        let errorMessage = 'Validation errors:';
-
-        if (errors.title) errorMessage += `\n- Title: ${errors.title[0]}`;
-        if (errors.content) errorMessage += `\n- Content: ${errors.content[0]}`;
-
-        alert(errorMessage);
-      } else {
-        alert('Failed to update privacy policy. Please try again.');
+      // Type-safe error handling
+      if (error instanceof Error) {
+        // Now you can safely access error.message
+        console.log('Error message:', error.message);
       }
     }
   };
@@ -129,9 +119,6 @@ export const PrivacyPolicyModal = ({ onClose }: BaseModalProps) => {
     setContent(newContent);
   };
 
-  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setTitle(e.target.value);
-  };
 
   // Show loading while fetching data
   if (isFetching && !isInitialized) {

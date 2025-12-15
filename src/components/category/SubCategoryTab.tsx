@@ -11,6 +11,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Edit, Plus, Trash2 } from 'lucide-react';
+import Image from 'next/image';
 import { useState } from 'react';
 import {
   useCreateSubCategoryMutation,
@@ -21,6 +22,14 @@ import AddSubCategoryModal from './AddSubCategoryModal';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
 import EditSubCategoryModal from './EditSubCategoryModal';
 import { Category, SubCategory } from './types/category';
+
+// Define form data interface for subcategory
+interface SubCategoryFormData {
+  name: string;
+  description?: string;
+  categoryId: string;
+  imageFile?: File;
+}
 
 interface SubCategoryTabProps {
   categories: Category[];
@@ -33,16 +42,16 @@ const SubCategoryTab: React.FC<SubCategoryTabProps> = ({
   subCategories,
   onRefetch,
 }) => {
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState<boolean>(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState<boolean>(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState<boolean>(false);
   const [selectedSubCategory, setSelectedSubCategory] = useState<SubCategory | null>(null);
 
   const [createSubCategory, { isLoading: isCreating }] = useCreateSubCategoryMutation();
   const [editSubCategory, { isLoading: isEditing }] = useEditSubCategoryMutation();
   const [deleteSubCategory, { isLoading: isDeleting }] = useDeleteSubCategoryMutation();
 
-  const handleAddSubCategory = async (subCategoryData: any) => {
+  const handleAddSubCategory = async (subCategoryData: SubCategoryFormData) => {
     try {
       const formData = new FormData();
       formData.append('title', subCategoryData.name);
@@ -58,7 +67,7 @@ const SubCategoryTab: React.FC<SubCategoryTabProps> = ({
       await createSubCategory(formData).unwrap();
       onRefetch();
       setIsAddModalOpen(false);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error adding sub category:', error);
       alert('Error adding sub category');
     }
@@ -69,7 +78,7 @@ const SubCategoryTab: React.FC<SubCategoryTabProps> = ({
     setIsEditModalOpen(true);
   };
 
-  const handleSaveSubCategory = async (subCategoryData: any) => {
+  const handleSaveSubCategory = async (subCategoryData: SubCategoryFormData) => {
     if (!selectedSubCategory) return;
 
     try {
@@ -92,7 +101,7 @@ const SubCategoryTab: React.FC<SubCategoryTabProps> = ({
       onRefetch();
       setIsEditModalOpen(false);
       setSelectedSubCategory(null);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error updating sub category:', error);
       alert('Error updating sub category');
     }
@@ -115,7 +124,7 @@ const SubCategoryTab: React.FC<SubCategoryTabProps> = ({
       onRefetch();
       setIsDeleteModalOpen(false);
       setSelectedSubCategory(null);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error deleting sub category:', error);
       alert('Error deleting sub category');
     }
@@ -129,6 +138,7 @@ const SubCategoryTab: React.FC<SubCategoryTabProps> = ({
           onClick={() => setIsAddModalOpen(true)}
           className="bg-green-600 hover:bg-green-700"
           disabled={isCreating}
+          type="button"
         >
           <Plus className="w-4 h-4 mr-2" />
           {isCreating ? 'Adding...' : 'Add Sub Category'}
@@ -151,8 +161,10 @@ const SubCategoryTab: React.FC<SubCategoryTabProps> = ({
             {subCategories.map((subCategory) => (
               <TableRow key={subCategory._id}>
                 <TableCell>
-                  <img
+                  <Image
                     src={subCategory.coverImage}
+                    width={1000}
+                    height={1000}
                     alt={subCategory.title}
                     className="w-12 h-12 rounded-lg object-cover"
                   />
@@ -174,6 +186,7 @@ const SubCategoryTab: React.FC<SubCategoryTabProps> = ({
                       size="sm"
                       onClick={() => handleEdit(subCategory)}
                       disabled={isEditing}
+                      type="button"
                     >
                       <Edit className="w-4 h-4" />
                     </Button>
@@ -183,6 +196,7 @@ const SubCategoryTab: React.FC<SubCategoryTabProps> = ({
                       onClick={() => handleDelete(subCategory)}
                       className="text-red-600 hover:text-red-700"
                       disabled={isDeleting}
+                      type="button"
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>

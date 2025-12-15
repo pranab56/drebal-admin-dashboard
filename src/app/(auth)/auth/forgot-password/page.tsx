@@ -1,5 +1,6 @@
 "use client";
 
+import { FetchBaseQueryError } from '@reduxjs/toolkit/query';
 import { ArrowLeft, Mail } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -18,7 +19,7 @@ export default function ForgotPasswordPage() {
     return emailRegex.test(email);
   };
 
-  const handleSubmit = async (): void => {
+  const handleSubmit = async (): Promise<void> => {
     setError('');
 
     if (!email) {
@@ -37,11 +38,14 @@ export default function ForgotPasswordPage() {
       toast.success(response.message || 'Verification code sent successfully.');
       router.push('/auth/verify-email?email=' + email);
     } catch (error) {
-      console.log(error)
-      toast.error(error?.data?.message || 'Failed to send verification code. Please try again.');
+      const err = error as FetchBaseQueryError & {
+        data?: { message?: string };
+      };
+
+      toast.error(
+        err?.data?.message || 'Failed to send verification code. Please try again.'
+      );
     }
-
-
   };
 
   const handleBack = (): void => {

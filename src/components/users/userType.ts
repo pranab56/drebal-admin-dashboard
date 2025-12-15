@@ -1,3 +1,48 @@
+export interface ApiUser {
+  _id: string;
+  name: string;
+  email: string;
+  role: 'USER' | 'ADMIN' | 'ORGANIZER';
+  status: string;
+  createdAt: string;
+  personalInfo?: {
+    phone?: string;
+    dateOfBirth?: string;
+    firstName?: string;
+    lastName?: string;
+  };
+  address?: {
+    city?: string;
+    street?: string;
+    country?: string;
+    postalCode?: string;
+  };
+  image?: string;
+  totalEvent?: number;
+  activeEvents?: number;
+  totalSold?: number;
+  totalRevenue?: number;
+  totalTicketSold?: number;
+  purchaseQuantity?: number;
+  user?: {
+    name?: string;
+    email?: string;
+    image?: string;
+    personalInfo?: {
+      phone?: string;
+      dateOfBirth?: string;
+      firstName?: string;
+      lastName?: string;
+    };
+    address?: {
+      city?: string;
+      street?: string;
+      country?: string;
+      postalCode?: string;
+    };
+  };
+}
+
 export interface User {
   _id: string;
   accountNumber?: string;
@@ -9,9 +54,8 @@ export interface User {
   location: string;
   joinDate: string;
   avatar: string;
-  status: 'Active' | 'Blocked' | 'Inactive' | 'Pending'; // More specific status types
+  status: 'Active' | 'Blocked' | 'Inactive' | 'Pending';
   verified?: boolean;
-  // Additional fields from API
   personalInfo?: {
     phone?: string;
     dateOfBirth?: string;
@@ -26,11 +70,9 @@ export interface User {
   };
   sellAmount?: number;
   withDrawAmount?: number;
-  // Attendee specific fields
   totalTicketsPurchased?: number;
   totalSpend?: string;
   totalEarn?: string;
-  // Organizer specific fields
   totalEvents?: number;
   activeEvents?: number;
   totalTicketsSoldOrg?: number;
@@ -56,3 +98,5 @@ export interface EventActivity {
   saleDate: string;
   amount: string;
 }
+
+export type UserRole = 'USER' | 'ADMIN' | 'ORGANIZER' | 'Attendee' | 'Organizer';

@@ -11,6 +11,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Edit, Plus, Trash2 } from 'lucide-react';
+import Image from 'next/image';
 import { useState } from 'react';
 import { baseURL } from '../../../utils/BaseURL';
 import { useCreateCategoryMutation, useDeleteCategoryMutation, useEditCategoryMutation, useGetAllCategoryQuery } from '../../features/category/categoryApi';
@@ -21,6 +22,26 @@ import DeleteConfirmationModal from './DeleteConfirmationModal';
 import EditCategoryModal from './EditCategoryModal';
 import EditSubCategoryModal from './EditSubCategoryModal';
 import { Category, SubCategory } from './types/category';
+
+// Define proper types for form data
+interface SubCategoryFormData {
+  name: string;
+  categoryId: string;
+  description?: string;
+  imageFile?: File;
+}
+
+interface EditCategoryFormData {
+  title: string;
+  image: File | null;
+}
+
+interface EditSubCategoryFormData {
+  name: string;
+  categoryId: string;
+  description?: string;
+  imageFile?: File;
+}
 
 const CategoryManagement: React.FC = () => {
   const [isAddCategoryModalOpen, setIsAddCategoryModalOpen] = useState(false);
@@ -56,16 +77,23 @@ const CategoryManagement: React.FC = () => {
   const categories: Category[] = categoriesData?.data || [];
   const subCategories: SubCategory[] = subCategoriesData?.data || [];
 
-  const handleAddCategory = async (categoryData: any) => {
+  const handleAddCategory = async (formData: FormData) => {
     try {
+      // Extract name from FormData
+      const name = formData.get('name') as string;
+      const image = formData.get('image') as File | null;
+
       const title = {
-        title: categoryData.name
-      }
+        title: name
+      };
 
       const formDataToSend = new FormData();
       formDataToSend.append('data', JSON.stringify(title));
-      formDataToSend.append('image', categoryData.image as File);
-      const response = await createCategory(formDataToSend).unwrap();
+      if (image) {
+        formDataToSend.append('image', image);
+      }
+
+      await createCategory(formDataToSend).unwrap();
       refetchCategories();
       refetchSubCategories();
       setIsAddCategoryModalOpen(false);
@@ -75,9 +103,9 @@ const CategoryManagement: React.FC = () => {
     }
   };
 
-  const handleAddSubCategory = async (subCategoryData: any) => {
+  const handleAddSubCategory = async (subCategoryData: SubCategoryFormData) => {
     try {
-      const response = await createSubCategory(subCategoryData).unwrap();
+      await createSubCategory(subCategoryData).unwrap();
       refetchSubCategories();
       setIsAddSubCategoryModalOpen(false);
     } catch (error) {
@@ -96,13 +124,16 @@ const CategoryManagement: React.FC = () => {
     setIsEditSubCategoryModalOpen(true);
   };
 
-  const handleSaveCategory = async (categoryData: any) => {
+  const handleSaveCategory = async (categoryData: EditCategoryFormData) => {
     if (!selectedCategory) return;
 
     try {
       const formData = new FormData();
       formData.append('title', categoryData.title);
-      formData.append('image', categoryData.image as File);
+      if (categoryData.image) {
+        formData.append('image', categoryData.image);
+      }
+
       await editCategory({
         id: selectedCategory._id,
         data: formData
@@ -118,7 +149,7 @@ const CategoryManagement: React.FC = () => {
     }
   };
 
-  const handleSaveSubCategory = async (subCategoryData: any) => {
+  const handleSaveSubCategory = async (subCategoryData: EditSubCategoryFormData) => {
     if (!selectedSubCategory) return;
 
     try {
@@ -133,7 +164,7 @@ const CategoryManagement: React.FC = () => {
         formData.append('coverImage', subCategoryData.imageFile);
       }
 
-      const response = await editSubCategory({
+      await editSubCategory({
         id: selectedSubCategory._id,
         data: { title: subCategoryData.name }
       }).unwrap();
@@ -153,8 +184,6 @@ const CategoryManagement: React.FC = () => {
   };
 
   const handleDeleteSubCategory = (subCategory: SubCategory) => {
-
-
     setItemToDelete(subCategory);
     setDeleteType('subcategory');
     setIsDeleteModalOpen(true);
@@ -245,9 +274,11 @@ const CategoryManagement: React.FC = () => {
                 return (
                   <TableRow key={category._id}>
                     <TableCell>
-                      <img
+                      <Image
                         src={baseURL + category.coverImage}
                         alt={category.title}
+                        width={1000}
+                        height={1000}
                         className="w-12 h-12 rounded-lg object-cover"
                       />
                     </TableCell>

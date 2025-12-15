@@ -36,7 +36,6 @@ export const PersonalInfoModal = ({ onClose }: BaseModalProps) => {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>('');
   const [errors, setErrors] = useState<ValidationErrors>({});
-  const [isLoading, setIsLoading] = useState(false);
 
   // Fetch data from API
   const {
@@ -49,7 +48,6 @@ export const PersonalInfoModal = ({ onClose }: BaseModalProps) => {
   // Update mutation
   const [updatePersonalInformation, {
     isLoading: updatePersonalInformationLoading,
-    isError: updatePersonalInformationError
   }] = useUpdatePersonalInformationMutation();
 
   // Helper function to get image URL
@@ -209,8 +207,6 @@ export const PersonalInfoModal = ({ onClose }: BaseModalProps) => {
       return;
     }
 
-    setIsLoading(true);
-
     try {
       // Create FormData for file upload
       const formDataToSend = new FormData();
@@ -240,16 +236,14 @@ export const PersonalInfoModal = ({ onClose }: BaseModalProps) => {
       } else {
         toast.error(response.message || 'Failed to update profile');
       }
-    } catch (error: any) {
-      toast.error(error.data.message || 'Failed to update profile. Please try again.');
-      // Handle specific error messages from API
-      if (error.data?.message) {
-        toast.error(error.data.message);
-      } else {
-        toast.error('Failed to update profile. Please try again.');
+    } catch (error: unknown) {
+      console.log('Login error:', error);
+
+      // Type-safe error handling
+      if (error instanceof Error) {
+        // Now you can safely access error.message
+        console.log('Error message:', error.message);
       }
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -412,9 +406,9 @@ export const PersonalInfoModal = ({ onClose }: BaseModalProps) => {
           <Button
             type="submit"
             className="w-full"
-            disabled={isLoading || updatePersonalInformationLoading}
+            disabled={updatePersonalInformationLoading}
           >
-            {isLoading || updatePersonalInformationLoading ? 'Saving...' : 'Save Changes'}
+            {updatePersonalInformationLoading ? 'Saving...' : 'Save Changes'}
           </Button>
         </form>
       </DialogContent>

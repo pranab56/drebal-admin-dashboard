@@ -20,10 +20,18 @@ import {
 import { useEffect, useState } from 'react';
 import { Category, SubCategory } from './types/category';
 
+// Define form data interface
+interface SubCategoryFormData {
+  name: string;
+  categoryId: string;
+  description?: string;
+  imageFile?: File;
+}
+
 interface EditSubCategoryModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (subCategory: any) => void;
+  onSave: (subCategory: SubCategoryFormData) => void;
   subCategory: SubCategory | null;
   categories: Category[];
   isLoading?: boolean;
@@ -37,7 +45,10 @@ const EditSubCategoryModal: React.FC<EditSubCategoryModalProps> = ({
   categories,
   isLoading = false,
 }) => {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    name: string;
+    categoryId: string;
+  }>({
     name: '',
     categoryId: ''
   });
@@ -55,7 +66,7 @@ const EditSubCategoryModal: React.FC<EditSubCategoryModalProps> = ({
     e.preventDefault();
     if (!subCategory) return;
 
-    const submitData = {
+    const submitData: SubCategoryFormData = {
       name: formData.name,
       categoryId: formData.categoryId,
     };
@@ -71,7 +82,6 @@ const EditSubCategoryModal: React.FC<EditSubCategoryModalProps> = ({
     }
     onClose();
   };
-
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>

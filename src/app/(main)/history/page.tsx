@@ -12,41 +12,57 @@ import { ChevronLeft, ChevronRight, Eye, Loader2, Search } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useGetAllHistoryQuery } from '../../../features/history/historyApi';
 
+interface DeleteHistoryItem {
+  _id: string;
+  userId: string;
+  deleteReason: string;
+  createdAt: string;
+  [key: string]: unknown; // For any additional properties
+}
+
+interface ApiResponse {
+  data?: DeleteHistoryItem[];
+  message?: string;
+  [key: string]: unknown;
+}
+
 export default function UserAccountDeleteHistory() {
-  const [currentPage, setCurrentPage] = useState(1);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedReason, setSelectedReason] = useState<string | null>(null);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState<boolean>(false);
   const [filteredData, setFilteredData] = useState<DeleteHistoryItem[]>([]);
 
-  const { data, isLoading } = useGetAllHistoryQuery();
+  const { data, isLoading } = useGetAllHistoryQuery({});
 
   // Format date from ISO string to DD-MM-YYYY
-  const formatDate = (isoDate: string) => {
+  const formatDate = (isoDate: string): string => {
     try {
       const date = new Date(isoDate);
       const day = String(date.getDate()).padStart(2, '0');
       const month = String(date.getMonth() + 1).padStart(2, '0');
       const year = date.getFullYear();
       return `${day}-${month}-${year}`;
-    } catch (error) {
+    } catch (error: unknown) {
+      console.error('Date formatting error:', error);
       return 'Invalid date';
     }
   };
 
   // Truncate long text with ellipsis
-  const truncateText = (text: string, maxLength: number = 60) => {
+  const truncateText = (text: string, maxLength: number = 60): string => {
     if (text.length <= maxLength) return text;
     return text.substring(0, maxLength) + '...';
   };
 
   // Handle search filter
   useEffect(() => {
-    if (data?.data) {
+    const apiData = (data as ApiResponse)?.data;
+    if (apiData) {
       if (!searchQuery.trim()) {
-        setFilteredData(data.data);
+        setFilteredData(apiData);
       } else {
-        const filtered = data.data.filter(item =>
+        const filtered = apiData.filter(item =>
           item.deleteReason.toLowerCase().includes(searchQuery.toLowerCase()) ||
           item.userId.toLowerCase().includes(searchQuery.toLowerCase()) ||
           formatDate(item.createdAt).toLowerCase().includes(searchQuery.toLowerCase())
@@ -57,30 +73,30 @@ export default function UserAccountDeleteHistory() {
     }
   }, [data, searchQuery]);
 
-  const handleViewReason = (reason: string) => {
+  const handleViewReason = (reason: string): void => {
     setSelectedReason(reason);
     setIsDialogOpen(true);
   };
 
   // Pagination calculations
-  const itemsPerPage = 10;
-  const totalItems = filteredData.length;
-  const totalPages = Math.ceil(totalItems / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
-  const currentItems = filteredData.slice(startIndex, endIndex);
+  const itemsPerPage: number = 10;
+  const totalItems: number = filteredData.length;
+  const totalPages: number = Math.ceil(totalItems / itemsPerPage);
+  const startIndex: number = (currentPage - 1) * itemsPerPage;
+  const endIndex: number = Math.min(startIndex + itemsPerPage, totalItems);
+  const currentItems: DeleteHistoryItem[] = filteredData.slice(startIndex, endIndex);
 
-  const handlePageChange = (page: number) => {
+  const handlePageChange = (page: number): void => {
     setCurrentPage(page);
   };
 
-  const handlePreviousPage = () => {
+  const handlePreviousPage = (): void => {
     if (currentPage > 1) {
       setCurrentPage(currentPage - 1);
     }
   };
 
-  const handleNextPage = () => {
+  const handleNextPage = (): void => {
     if (currentPage < totalPages) {
       setCurrentPage(currentPage + 1);
     }
@@ -168,6 +184,7 @@ export default function UserAccountDeleteHistory() {
                         onClick={() => handleViewReason(item.deleteReason)}
                         className="text-green-600 cursor-pointer hover:text-green-700 transition-colors"
                         title="View full reason"
+                        type="button"
                       >
                         <Eye className="w-5 h-5" />
                       </button>
@@ -187,6 +204,7 @@ export default function UserAccountDeleteHistory() {
               onClick={handlePreviousPage}
               disabled={currentPage === 1}
               className={`${currentPage === 1 ? 'text-gray-400 bg-gray-100 hover:bg-gray-100 cursor-not-allowed' : 'text-gray-700 hover:bg-gray-100'}`}
+              type="button"
             >
               <ChevronLeft className="w-4 h-4 mr-1" />
               Previous
@@ -196,13 +214,14 @@ export default function UserAccountDeleteHistory() {
             <Button
               onClick={() => handlePageChange(1)}
               className={`w-10 h-10 p-0 ${currentPage === 1 ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-white text-gray-700 hover:bg-gray-100'}`}
+              type="button"
             >
               1
             </Button>
 
             {/* Ellipsis if needed */}
             {currentPage > 3 && (
-              <Button variant="outline" className="w-10 h-10 p-0" disabled>
+              <Button variant="outline" className="w-10 h-10 p-0" disabled type="button">
                 ...
               </Button>
             )}
@@ -215,6 +234,7 @@ export default function UserAccountDeleteHistory() {
                   key={page}
                   onClick={() => handlePageChange(page)}
                   className={`w-10 h-10 p-0 ${currentPage === page ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-white text-gray-700 hover:bg-gray-100'}`}
+                  type="button"
                 >
                   {page}
                 </Button>
@@ -222,7 +242,7 @@ export default function UserAccountDeleteHistory() {
 
             {/* Ellipsis if needed */}
             {currentPage < totalPages - 2 && totalPages > 5 && (
-              <Button variant="outline" className="w-10 h-10 p-0" disabled>
+              <Button variant="outline" className="w-10 h-10 p-0" disabled type="button">
                 ...
               </Button>
             )}
@@ -232,6 +252,7 @@ export default function UserAccountDeleteHistory() {
               <Button
                 onClick={() => handlePageChange(totalPages)}
                 className={`w-10 h-10 p-0 ${currentPage === totalPages ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-white text-gray-700 hover:bg-gray-100'}`}
+                type="button"
               >
                 {totalPages}
               </Button>
@@ -241,6 +262,7 @@ export default function UserAccountDeleteHistory() {
               onClick={handleNextPage}
               disabled={currentPage === totalPages}
               className={`${currentPage === totalPages ? 'bg-green-600 hover:bg-green-700 text-white opacity-50 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700 text-white'}`}
+              type="button"
             >
               Next
               <ChevronRight className="w-4 h-4 ml-1" />
@@ -274,6 +296,7 @@ export default function UserAccountDeleteHistory() {
               <Button
                 onClick={() => setIsDialogOpen(false)}
                 className="bg-green-600 hover:bg-green-700 text-white px-8"
+                type="button"
               >
                 Close
               </Button>

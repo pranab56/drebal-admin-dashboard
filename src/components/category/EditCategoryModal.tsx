@@ -11,14 +11,21 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Upload, X } from 'lucide-react';
+import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { baseURL } from '../../../utils/BaseURL';
 import { Category } from './types/category';
 
+// Define form data interface
+interface CategoryFormData {
+  title: string;
+  image: File | null;
+}
+
 interface EditCategoryModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (category: any) => void;
+  onSave: (category: CategoryFormData) => void;
   category: Category | null;
   isLoading?: boolean;
 }
@@ -30,12 +37,15 @@ const EditCategoryModal: React.FC<EditCategoryModalProps> = ({
   category,
   isLoading = false,
 }) => {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    name: string;
+    image: string;
+  }>({
     name: '',
     image: ''
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
+  const [isUploading] = useState(false);
 
   useEffect(() => {
     if (category) {
@@ -51,13 +61,10 @@ const EditCategoryModal: React.FC<EditCategoryModalProps> = ({
     e.preventDefault();
     if (!category) return;
 
-    // Expected console.log output
-    const data = { title: formData.name, image: imageFile }
-
-    // const submitData = {
-    //   title: formData.name,
-    //   imageFile: imageFile
-    // };
+    const data: CategoryFormData = {
+      title: formData.name,
+      image: imageFile
+    };
 
     await onSave(data);
   };
@@ -138,6 +145,13 @@ const EditCategoryModal: React.FC<EditCategoryModalProps> = ({
                 className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${'border-gray-300 hover:border-gray-400'
                   } ${isUploading ? 'opacity-50' : ''}`}
                 onClick={() => document.getElementById('edit-file-input')?.click()}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    document.getElementById('edit-file-input')?.click();
+                  }
+                }}
               >
                 <input
                   id="edit-file-input"
@@ -157,8 +171,10 @@ const EditCategoryModal: React.FC<EditCategoryModalProps> = ({
               </div>
             ) : (
               <div className="relative">
-                <img
+                <Image
                   src={formData.image.startsWith('blob:') ? formData.image : baseURL + formData.image}
+                  width={1000}
+                  height={1000}
                   alt="Preview"
                   className="w-full h-48 object-cover rounded-lg"
                 />
@@ -169,6 +185,7 @@ const EditCategoryModal: React.FC<EditCategoryModalProps> = ({
                     size="sm"
                     className="w-8 h-8 p-0"
                     onClick={() => document.getElementById('edit-file-input')?.click()}
+                    aria-label="Upload new image"
                   >
                     <Upload className="w-4 h-4" />
                   </Button>
@@ -178,6 +195,7 @@ const EditCategoryModal: React.FC<EditCategoryModalProps> = ({
                     size="sm"
                     className="w-8 h-8 p-0"
                     onClick={removeImage}
+                    aria-label="Remove image"
                   >
                     <X className="w-4 h-4" />
                   </Button>

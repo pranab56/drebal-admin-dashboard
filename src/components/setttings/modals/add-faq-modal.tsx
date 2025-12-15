@@ -79,7 +79,8 @@ export const AddFAQModal = ({ onClose, onAdd, currentTab }: AddFAQModalProps) =>
     try {
       onAdd({
         question: question.trim(),
-        answer
+        answer,
+        faqType
       }, faqType);
       // Note: The modal will be closed by the parent component after successful creation
     } catch (error) {

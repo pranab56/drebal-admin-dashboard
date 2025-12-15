@@ -54,15 +54,13 @@ export const FAQManagement = ({ onNavigate }: FAQManagementProps) => {
     searchTerm: debouncedSearch || undefined
   });
 
-  const [createFaq, { isLoading: createFaqLoading }] = useCreateFAQMutation();
-  const [updateFaq, { isLoading: updateFaqLoading }] = useUpdateFAQMutation();
+  const [createFaq] = useCreateFAQMutation();
+  const [updateFaq] = useUpdateFAQMutation();
   const [deleteFaq, { isLoading: deleteFaqLoading }] = useDeleteFAQMutation();
 
   // Extract FAQs from response
   const faqs = faqResponse?.data || [];
   const meta = faqResponse?.meta || { page: 1, limit: 10, total: 0, totalPage: 1 };
-
-  const itemsPerPage = meta.limit || 10;
   const totalPages = meta.totalPage || 1;
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -74,8 +72,8 @@ export const FAQManagement = ({ onNavigate }: FAQManagementProps) => {
     try {
       const faqData = {
         type: 'faq' as const,
-        faqType,
-        ...newFAQ
+        ...newFAQ,
+        faqType
       };
 
       const response = await createFaq(faqData).unwrap();
@@ -189,7 +187,7 @@ export const FAQManagement = ({ onNavigate }: FAQManagementProps) => {
   };
 
   const renderFAQTable = (faqList: FAQ[], type: 'user' | 'vanue') => {
-    const filteredFaqs = faqList.filter(faq => faq.faqType === type);
+    const filteredFaqs = faqList.filter((faq: FAQ) => faq.faqType === type);
 
     if (filteredFaqs.length === 0) {
       return (
@@ -303,6 +301,9 @@ export const FAQManagement = ({ onNavigate }: FAQManagementProps) => {
     );
   }
 
+  // Calculate filtered FAQs count
+  const filteredFaqsCount = faqs.filter((faq: FAQ) => faq.faqType === activeTab).length;
+
   return (
     <div className="p-6">
       <div className="flex items-center gap-2 mb-2">
@@ -340,7 +341,7 @@ export const FAQManagement = ({ onNavigate }: FAQManagementProps) => {
 
       <div className="flex justify-between items-center mb-4">
         <div className="text-sm text-gray-600">
-          Showing {faqs.filter(faq => faq.faqType === activeTab).length} of {meta.total} {activeTab === 'user' ? 'User' : 'Venue'} FAQs
+          Showing {filteredFaqsCount} of {meta.total} {activeTab === 'user' ? 'User' : 'Venue'} FAQs
         </div>
         <div className="relative w-80">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -364,7 +365,7 @@ export const FAQManagement = ({ onNavigate }: FAQManagementProps) => {
       </div>
 
       {/* Pagination */}
-      {faqs.filter(faq => faq.faqType === activeTab).length > 0 && (
+      {filteredFaqsCount > 0 && (
         <div className="flex justify-center items-center gap-2 mt-6">
           <Button
             variant="outline"

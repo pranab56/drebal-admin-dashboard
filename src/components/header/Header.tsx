@@ -11,6 +11,39 @@ import { baseURL } from '../../../utils/BaseURL';
 import { useGetAllNotificationQuery } from '../../features/notification/notifications';
 import { useGetPersonalInformationQuery } from '../../features/settings/settingsApi';
 
+// Define notification interface
+interface NotificationEvent {
+  eventId?: string;
+  eventTitle?: string;
+}
+
+interface Notification {
+  _id: string;
+  title: string;
+  message: string;
+  status: string;
+  read: boolean;
+  createdAt: string;
+  event?: NotificationEvent;
+}
+
+interface NotificationsResponse {
+  data?: Notification[];
+  message?: string;
+}
+
+// Define personal information interface
+interface PersonalInfo {
+  name?: string;
+  role?: string;
+  image?: string;
+}
+
+interface PersonalInfoResponse {
+  data?: PersonalInfo;
+  message?: string;
+}
+
 export default function MainlandHeader() {
   const router = useRouter();
 
@@ -28,12 +61,13 @@ export default function MainlandHeader() {
   const notificationRef = useRef<HTMLDivElement>(null);
 
   // Calculate unread notifications count
-  const unreadCount = notificationsData?.data?.filter(
-    (notification: any) => !notification.read
+  const notificationsResponse = notificationsData as NotificationsResponse | undefined;
+  const unreadCount = notificationsResponse?.data?.filter(
+    (notification: Notification) => !notification.read
   )?.length || 0;
 
   // Format time ago function
-  const formatTimeAgo = (dateString: string) => {
+  const formatTimeAgo = (dateString: string): string => {
     const date = new Date(dateString);
     const now = new Date();
     const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
@@ -48,7 +82,7 @@ export default function MainlandHeader() {
   };
 
   // Get status badge color
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string): string => {
     switch (status) {
       case 'approved':
         return 'bg-green-100 text-green-800 border-green-200';
@@ -62,7 +96,7 @@ export default function MainlandHeader() {
   };
 
   // Get avatar fallback text
-  const getAvatarFallback = (eventTitle?: string) => {
+  const getAvatarFallback = (eventTitle?: string): string => {
     if (!eventTitle) return 'EV';
     const words = eventTitle.split(' ');
     if (words.length >= 2) {
@@ -113,7 +147,7 @@ export default function MainlandHeader() {
     router.push("/notifications");
   };
 
-  const handleNotificationItemClick = (notification: any) => {
+  const handleNotificationItemClick = (notification: Notification) => {
     // You can add specific navigation based on notification type
     setIsNotificationOpen(false);
 
@@ -138,6 +172,9 @@ export default function MainlandHeader() {
     );
   }
 
+  const personalInfoResponse = personalInformation as PersonalInfoResponse | undefined;
+  const personalInfo = personalInfoResponse?.data;
+
   return (
     <div className="w-full border-b bg-white">
       <header className="flex h-16 items-center justify-end px-6 gap-4">
@@ -146,6 +183,8 @@ export default function MainlandHeader() {
           <button
             onClick={handleNotificationClick}
             className="relative flex cursor-pointer items-center justify-center p-2 rounded-full hover:bg-gray-100 transition-colors"
+            type="button"
+            aria-label="Notifications"
           >
             <Bell className="h-5 w-5 text-gray-700" />
             {unreadCount > 0 && (
@@ -160,9 +199,9 @@ export default function MainlandHeader() {
             <div className="absolute right-0 top-full mt-2 w-80 rounded-lg border border-gray-200 bg-white shadow-lg z-50 max-h-96 overflow-hidden flex flex-col">
               <div className="p-3 border-b border-gray-200">
                 <h3 className="text-sm font-semibold text-gray-900">Notifications</h3>
-                {notificationsData?.data?.length > 0 && (
+                {notificationsResponse?.data && notificationsResponse.data.length > 0 && (
                   <p className="text-xs text-gray-500 mt-1">
-                    {unreadCount} unread of {notificationsData.data.length} total
+                    {unreadCount} unread of {notificationsResponse.data.length} total
                   </p>
                 )}
               </div>
@@ -179,13 +218,20 @@ export default function MainlandHeader() {
                       </div>
                     </div>
                   ))
-                ) : notificationsData?.data?.length > 0 ? (
-                  notificationsData.data.slice(0, 5).map((notification: any) => (
+                ) : notificationsResponse?.data && notificationsResponse.data.length > 0 ? (
+                  notificationsResponse.data.slice(0, 5).map((notification: Notification) => (
                     <div
                       key={notification._id}
                       onClick={() => handleNotificationItemClick(notification)}
                       className={`flex items-start gap-3 p-3 hover:bg-gray-50 cursor-pointer transition-colors border-b border-gray-100 last:border-b-0 ${!notification.read ? 'bg-blue-50' : ''
                         }`}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          handleNotificationItemClick(notification);
+                        }
+                      }}
                     >
                       <Avatar className="h-10 w-10 flex-shrink-0 ring-2 ring-[#00a651]">
                         <AvatarFallback className={`font-medium ${getStatusColor(notification.status)}`}>
@@ -231,16 +277,17 @@ export default function MainlandHeader() {
                     <Bell className="h-10 w-10 text-gray-300 mb-3" />
                     <p className="text-sm text-gray-500">No notifications yet</p>
                     <p className="text-xs text-gray-400 mt-1">
-                      We'll notify you when something arrives
+                      We&apos;ll notify you when something arrives
                     </p>
                   </div>
                 )}
               </div>
-              {notificationsData?.data?.length > 0 && (
+              {notificationsResponse?.data && notificationsResponse.data.length > 0 && (
                 <div className="p-2 border-t border-gray-200">
                   <button
                     onClick={handleViewAllClick}
                     className="w-full cursor-pointer text-xs text-[#00a651] hover:text-[#008f45] font-medium py-2 text-center transition-colors"
+                    type="button"
                   >
                     View All Notifications
                   </button>
@@ -256,18 +303,21 @@ export default function MainlandHeader() {
             onClick={handleProfileClick}
             className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-full hover:bg-gray-100 transition-colors cursor-pointer"
             disabled={personalInformationLoading}
+            type="button"
+            aria-label="User profile menu"
           >
             <Avatar className="h-9 w-9 ring-2 ring-gray-200">
-              {personalInformation?.data?.image ? (
+              {personalInfo?.image ? (
                 <Image
-                  src={baseURL + personalInformation?.data?.image}
-                  alt={`${personalInformation?.data?.name || 'User'} profile`}
+                  src={baseURL + personalInfo.image}
+                  alt={`${personalInfo?.name || 'User'} profile`}
                   width={36}
                   height={36}
                   className="h-9 w-9 object-cover"
                   onError={(e) => {
                     // Fallback to avatar on error
-                    e.currentTarget.style.display = 'none';
+                    const imgElement = e.currentTarget;
+                    imgElement.style.display = 'none';
                   }}
                 />
               ) : null}
@@ -275,10 +325,10 @@ export default function MainlandHeader() {
             </Avatar>
             <div className="flex flex-col items-start">
               <span className="text-sm font-medium text-gray-900 line-clamp-1 max-w-[120px]">
-                {personalInformation?.data?.name || 'User'}
+                {personalInfo?.name || 'User'}
               </span>
               <span className="text-[11px] text-gray-500 capitalize">
-                {personalInformation?.data?.role?.toLowerCase() || 'User'}
+                {personalInfo?.role?.toLowerCase() || 'user'}
               </span>
             </div>
             <ChevronDown className="h-4 w-4 text-gray-500 flex-shrink-0" />
@@ -290,6 +340,7 @@ export default function MainlandHeader() {
               <button
                 onClick={handleMyProfile}
                 className="flex w-full px-4 py-2 text-sm cursor-pointer text-gray-700 hover:bg-gray-50 transition-colors text-left"
+                type="button"
               >
                 My Profile
               </button>
@@ -297,6 +348,7 @@ export default function MainlandHeader() {
               <button
                 onClick={handleLogout}
                 className="flex w-full px-4 py-2 text-sm cursor-pointer text-red-600 hover:bg-gray-50 transition-colors text-left"
+                type="button"
               >
                 Logout
               </button>

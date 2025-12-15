@@ -38,8 +38,6 @@ export const ChangePasswordModal = ({ onClose }: BaseModalProps) => {
 
   const [changePassword, {
     isLoading: changePasswordLoading,
-    isError: isChangePasswordError,
-    error: changePasswordError
   }] = useChangePasswordMutation();
 
   const validateForm = (): boolean => {
@@ -122,30 +120,13 @@ export const ChangePasswordModal = ({ onClose }: BaseModalProps) => {
 
       onClose();
 
-    } catch (error: any) {
-      toast.error('Error changing password:', error);
-      // Handle different types of errors
-      if (error.data?.message) {
-        // Server error message
-        toast.error(error.data.message);
-      } else if (error.data?.errors) {
-        // Validation errors from server
-        const serverErrors = error.data.errors;
-        setErrors({
-          old: serverErrors.currentPassword?.[0],
-          new: serverErrors.newPassword?.[0],
-          confirm: serverErrors.confirmPassword?.[0]
-        });
-      } else if (error.status === 401) {
-        // Unauthorized - incorrect current password
-        toast.error('Current password is incorrect');
-        setErrors(prev => ({ ...prev, old: 'Current password is incorrect' }));
-      } else if (error.status === 400) {
-        // Bad request
-        toast.error('Invalid request. Please check your input.');
-      } else {
-        // Generic error
-        toast.error('Failed to change password. Please try again.');
+    } catch (error: unknown) {
+      console.log('Login error:', error);
+
+      // Type-safe error handling
+      if (error instanceof Error) {
+        // Now you can safely access error.message
+        console.log('Error message:', error.message);
       }
     }
   };

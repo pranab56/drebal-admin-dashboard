@@ -57,8 +57,14 @@ export default function EventNotificationManagement() {
       const response = await adminSendToBroadcast(eventId).unwrap();
       toast.success(response.message || 'Notification broadcasted successfully');
       refetch(); // Refresh the notifications list
-    } catch (error: any) {
-      toast.error(`Failed to broadcast notification: ${error?.data?.message || error.message || 'Unknown error'}`);
+    } catch (error: unknown) {
+      console.log('Login error:', error);
+
+      // Type-safe error handling
+      if (error instanceof Error) {
+        // Now you can safely access error.message
+        console.log('Error message:', error.message);
+      }
     } finally {
       // Remove this notification ID from broadcasting set
       setBroadcastingIds(prev => {
@@ -77,8 +83,14 @@ export default function EventNotificationManagement() {
       const response = await adminRejected(eventId).unwrap();
       toast.success(response.message || 'Notification rejected successfully');
       refetch(); // Refresh the notifications list
-    } catch (error: any) {
-      toast.error(`Failed to reject notification: ${error?.data?.message || error.message || 'Unknown error'}`);
+    } catch (error: unknown) {
+      console.log('Login error:', error);
+
+      // Type-safe error handling
+      if (error instanceof Error) {
+        // Now you can safely access error.message
+        console.log('Error message:', error.message);
+      }
     } finally {
       // Remove this notification ID from rejecting set
       setRejectingIds(prev => {

@@ -1,5 +1,7 @@
 // utils/apiResponseMapper.ts
 
+import { User } from '../src/components/users/userType';
+
 export interface ApiUser {
   _id: string;
   name: string;
@@ -41,7 +43,7 @@ export interface ApiUserResponse {
   data: ApiUser[] | ApiUser;
 }
 
-export const mapApiUserToFrontend = (apiUser: any): User => {
+export const mapApiUserToFrontend = (apiUser: ApiUser): User => {
   // Extract personal info
   const phone = apiUser.personalInfo?.phone || 'N/A';
   const dateOfBirth = apiUser.personalInfo?.dateOfBirth
@@ -86,19 +88,19 @@ export const mapApiUserToFrontend = (apiUser: any): User => {
     phone: phone,
     location: location,
     joinDate: joinDate,
-    image: apiUser?.user?.image,
-    avatar: apiUser.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(apiUser.name || 'User')}&background=random`,
+    avatar: apiUser.image || `https://ui-avatars.com/api/?name=${encodeURIComponent(apiUser.name || 'User')}&background=random`,
     status: 'Active', // Default status, you might want to get this from API
     verified: true, // Default verified status
     personalInfo: apiUser.personalInfo,
     address: apiUser.address,
     // Add organizer specific fields if they exist
     totalEvents: apiUser.totalEvents || 0,
-    activeEvents: apiUser.activeEvents?.toString() || '0',
+    activeEvents: apiUser.activeEvents || 0,
     totalTicketsSoldOrg: apiUser.totalSold || 0,
     totalRevenue: apiUser.totalRevenue ? `$${apiUser.totalRevenue}` : '$0',
+    totalSold: apiUser.totalSold || 0,
     // Add user specific fields if they exist
-    totalTicketsSold: apiUser.totalTicketSold || 0,
-    totalTicketsPurchased: apiUser.purchaseQuantity || 0,
+    totalTicketsPurchased: apiUser.totalTicketSold || 0,
+    totalSpend: apiUser.purchaseQuantity ? `$${apiUser.purchaseQuantity}` : '$0',
   };
 };

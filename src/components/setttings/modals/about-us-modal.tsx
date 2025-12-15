@@ -25,14 +25,11 @@ export const AboutUsModal = ({ onClose }: BaseModalProps) => {
     isLoading: isFetching,
     isError: isFetchError,
     refetch: refetchAboutData,
-    isSuccess: isFetchSuccess
   } = useGetAboutQuery({});
 
   // Update mutation
   const [updateAbout, {
     isLoading: isUpdating,
-    isError: isUpdateError,
-    error: updateError
   }] = useAboutMutation();
 
   useEffect(() => {
@@ -102,29 +99,13 @@ export const AboutUsModal = ({ onClose }: BaseModalProps) => {
         toast.error(response.message || 'Failed to update about us content');
       }
 
-    } catch (error: any) {
-      console.error('Error updating about us:', error);
+    } catch (error: unknown) {
+      console.log('Login error:', error);
 
-      if (error.data?.message) {
-        alert(error.data.message);
-      } else if (error.data?.errors) {
-        // Handle validation errors
-        const errors = error.data.errors;
-        let errorMessage = 'Validation errors:';
-
-        if (errors.title) errorMessage += `\n- Title: ${errors.title[0]}`;
-        if (errors.content) errorMessage += `\n- Content: ${errors.content[0]}`;
-        if (errors.type) errorMessage += `\n- Type: ${errors.type[0]}`;
-
-        alert(errorMessage);
-      } else if (error.status === 400) {
-        alert('Invalid data. Please check your content.');
-      } else if (error.status === 401) {
-        alert('Unauthorized. Please login again.');
-      } else if (error.status === 403) {
-        alert('You do not have permission to update about us content');
-      } else {
-        alert('Failed to update about us content. Please try again.');
+      // Type-safe error handling
+      if (error instanceof Error) {
+        // Now you can safely access error.message
+        console.log('Error message:', error.message);
       }
     }
   };

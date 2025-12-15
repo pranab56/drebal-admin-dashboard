@@ -5,11 +5,17 @@ export const eventApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     getAllEvents: builder.query({
       query: (eventStatus) => ({
-        url: `/event/under-review?EventStatus=${eventStatus}`,
-        method: "GET",
+        url: '/event/under-review',
+        method: 'GET',
+        params:
+          eventStatus && eventStatus !== 'all'
+            ? { EventStatus: eventStatus }
+            : undefined,
       }),
       providesTags: ['event'],
     }),
+
+
 
     eventDetails: builder.query({
       query: (id) => ({

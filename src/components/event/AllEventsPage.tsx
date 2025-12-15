@@ -9,32 +9,37 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { MapPin, Search } from 'lucide-react';
+import Image from 'next/image';
 import { useState } from 'react';
 import { baseURL } from '../../../utils/BaseURL';
 import { useGetAllEventsQuery } from '../../features/events/eventApi';
 import { EventListItem } from './eventType';
 
-export default function AllEventsPage({ onEventClick }: { onEventClick: (eventId: string) => void }) {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('UnderReview'); // Default to UnderReview
-  const [currentPage, setCurrentPage] = useState(1);
+interface AllEventsPageProps {
+  onEventClick: (eventId: string) => void;
+}
+
+export default function AllEventsPage({ onEventClick }: AllEventsPageProps) {
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [statusFilter, setStatusFilter] = useState<string>('');
+  const [currentPage, setCurrentPage] = useState<number>(1);
 
   const { data, isLoading, error } = useGetAllEventsQuery(statusFilter);
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string): string => {
     switch (status) {
-      case 'UnderReview': return 'bg-yellow-100 text-yellow-700';
-      case 'Live': return 'bg-green-100 text-green-700';
-      case 'Rejected': return 'bg-red-100 text-red-700';
-      case 'Completed': return 'bg-blue-100 text-blue-700';
-      case 'Cancelled': return 'bg-gray-100 text-gray-700';
-      default: return 'bg-gray-100 text-gray-700';
+      case 'UnderReview':
+        return 'bg-yellow-100 text-yellow-700';
+      case 'Live':
+        return 'bg-green-100 text-green-700';
+      case 'Expired':
+        return 'bg-red-100 text-red-700';
+      default:
+        return 'bg-gray-100 text-gray-700';
     }
   };
 
-
-
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string): string => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
@@ -93,13 +98,11 @@ export default function AllEventsPage({ onEventClick }: { onEventClick: (eventId
             <SelectTrigger className="w-[180px] py-5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
-            <SelectContent className=''>
-
+            <SelectContent>
+              <SelectItem value="all">All</SelectItem>
               <SelectItem value="UnderReview">Under Review</SelectItem>
               <SelectItem value="Live">Live</SelectItem>
-              <SelectItem value="Rejected">Rejected</SelectItem>
-              <SelectItem value="Completed">Completed</SelectItem>
-              <SelectItem value="Cancelled">Cancelled</SelectItem>
+              <SelectItem value="Expired">Rejected</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -113,13 +116,18 @@ export default function AllEventsPage({ onEventClick }: { onEventClick: (eventId
           </div>
         ) : (
           events.map((event: EventListItem) => (
-            <div key={event._id} className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-sm transition-shadow">
+            <div
+              key={event._id}
+              className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-sm transition-shadow"
+            >
               <div className="flex gap-4">
                 <div className="w-40 h-36 bg-gray-200 rounded-lg flex-shrink-0 overflow-hidden">
                   {event.image ? (
-                    <img
+                    <Image
                       src={baseURL + event.image}
                       alt={event.eventName}
+                      width={1000}
+                      height={1000}
                       className="w-full h-full object-cover"
                     />
                   ) : (
@@ -172,10 +180,10 @@ export default function AllEventsPage({ onEventClick }: { onEventClick: (eventId
                   </div>
                 </div>
 
-                <div className='flex flex-col gap-5 justify-center'>
+                <div className="flex flex-col gap-5 justify-center">
                   <button
                     onClick={() => onEventClick(event._id)}
-                    className="bg-green-700 hover:bg-green-800 cursor-pointer text-white px-8 py-2 rounded-lg font-medium"
+                    className="bg-green-700 hover:bg-green-800 cursor-pointer text-white px-8 py-2 rounded-lg font-medium transition-colors"
                   >
                     View Details
                   </button>
@@ -192,13 +200,13 @@ export default function AllEventsPage({ onEventClick }: { onEventClick: (eventId
           <button
             onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
             disabled={currentPage === 1}
-            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             Previous
           </button>
 
           {Array.from({ length: Math.min(5, data.meta.totalPage) }, (_, i) => {
-            let pageNum;
+            let pageNum: number;
             if (data.meta.totalPage <= 5) {
               pageNum = i + 1;
             } else if (currentPage <= 3) {
@@ -213,7 +221,7 @@ export default function AllEventsPage({ onEventClick }: { onEventClick: (eventId
               <button
                 key={pageNum}
                 onClick={() => setCurrentPage(pageNum)}
-                className={`px-3 py-2 rounded-lg ${currentPage === pageNum
+                className={`px-3 py-2 rounded-lg transition-colors ${currentPage === pageNum
                   ? 'bg-green-700 text-white'
                   : 'border border-gray-300 hover:bg-gray-50'
                   }`}
@@ -228,7 +236,7 @@ export default function AllEventsPage({ onEventClick }: { onEventClick: (eventId
               <span className="px-2">...</span>
               <button
                 onClick={() => setCurrentPage(data.meta.totalPage)}
-                className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
               >
                 {data.meta.totalPage}
               </button>
@@ -238,7 +246,7 @@ export default function AllEventsPage({ onEventClick }: { onEventClick: (eventId
           <button
             onClick={() => setCurrentPage(prev => Math.min(data.meta.totalPage, prev + 1))}
             disabled={currentPage === data.meta.totalPage}
-            className="px-4 py-2 bg-green-700 text-white rounded-lg hover:bg-green-800 disabled:opacity-50"
+            className="px-4 py-2 bg-green-700 text-white rounded-lg hover:bg-green-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             Next
           </button>

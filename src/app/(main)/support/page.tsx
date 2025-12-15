@@ -25,11 +25,40 @@ import toast from 'react-hot-toast';
 import TipTapEditor from '../../../TipTapEditor/TipTapEditor';
 import { useDeleteSupportMutation, useFeedbackAdminMutation, useGetAllSupportQuery } from '../../../features/support/supportApi';
 
+interface SupportItem {
+  _id: string;
+  userId: string;
+  email: string;
+  message: string;
+  status: 'pending' | 'solved';
+  createdAt: string;
+  adminMessage?: string;
+}
+
+interface ApiMeta {
+  total: number;
+  limit: number;
+  totalPage: number;
+}
+
+interface ApiResponse {
+  data: SupportItem[];
+  meta: ApiMeta;
+  message?: string;
+}
+
+interface FeedbackData {
+  data: {
+    adminMessage: string;
+  };
+  id: string;
+}
+
 export default function SupportManagement() {
   const [currentPage, setCurrentPage] = useState(1);
   const [solveDialogOpen, setSolveDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [selectedSupport, setSelectedSupport] = useState<any>(null);
+  const [selectedSupport, setSelectedSupport] = useState<SupportItem | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [content, setContent] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -48,13 +77,13 @@ export default function SupportManagement() {
     return () => clearTimeout(timer);
   }, [searchTerm, refetch]);
 
-  const handleSolve = (support: any) => {
+  const handleSolve = (support: SupportItem) => {
     setSelectedSupport(support);
     setContent(support.adminMessage || ''); // Pre-fill with existing admin message if any
     setSolveDialogOpen(true);
   };
 
-  const handleDelete = (support: any) => {
+  const handleDelete = (support: SupportItem) => {
     setSelectedSupport(support);
     setDeleteDialogOpen(true);
   };
@@ -67,7 +96,7 @@ export default function SupportManagement() {
 
     setIsSubmitting(true);
     try {
-      const feedbackData = {
+      const feedbackData: FeedbackData = {
         data: {
           adminMessage: content
         },
@@ -79,7 +108,7 @@ export default function SupportManagement() {
       setSolveDialogOpen(false);
       setContent('');
       refetch(); // Refresh the data
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to send feedback:', error);
       alert('Failed to send feedback');
     } finally {
@@ -95,7 +124,7 @@ export default function SupportManagement() {
       toast.success(response.message || 'Support deleted successfully');
       setDeleteDialogOpen(false);
       refetch(); // Refresh the data
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to delete support:', error);
       toast.error('Failed to delete support');
     }
@@ -110,10 +139,10 @@ export default function SupportManagement() {
   };
 
   // Calculate pagination
-  const totalItems = supportData?.meta?.total || 0;
-  const itemsPerPage = supportData?.meta?.limit || 10;
-  const totalPages = supportData?.meta?.totalPage || 1;
-  const supports = supportData?.data || [];
+  const apiData = supportData as ApiResponse | undefined;
+  const totalItems = apiData?.meta?.total || 0;
+  const totalPages = apiData?.meta?.totalPage || 1;
+  const supports = apiData?.data || [];
 
   const handlePageChange = (page: number) => {
     if (page < 1 || page > totalPages) return;
@@ -125,11 +154,11 @@ export default function SupportManagement() {
     const buttons = [];
     const maxVisiblePages = 5;
 
-    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+    const startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
     let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
 
     if (endPage - startPage + 1 < maxVisiblePages) {
-      startPage = Math.max(1, endPage - maxVisiblePages + 1);
+      endPage = Math.max(1, startPage + maxVisiblePages - 1);
     }
 
     // Previous button
@@ -258,7 +287,7 @@ export default function SupportManagement() {
                     </td>
                   </tr>
                 ) : (
-                  supports.map((support: any) => (
+                  supports.map((support) => (
                     <tr key={support._id} className="border-b last:border-b-0 hover:bg-gray-50">
                       <td className="p-4 text-sm font-mono text-gray-600 truncate max-w-[150px]">
                         {support.userId}
@@ -344,7 +373,7 @@ export default function SupportManagement() {
                     content={content}
                     onChange={handleContentChange}
                     placeholder="Enter your response here..."
-                    editable={selectedSupport?.status === 'pending'}
+                  // editable={selectedSupport?.status === 'pending'}
                   />
                 </div>
               </div>

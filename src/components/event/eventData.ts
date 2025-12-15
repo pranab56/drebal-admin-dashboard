@@ -1,9 +1,9 @@
-import { Event } from './eventType';
+import { UIEvent } from './eventType';
 
 
-export const eventsData: Event[] = [
+export const eventsData: UIEvent[] = [
   {
-    id: 1,
+    id: '1',
     name: 'Piano Star Event',
     location: 'Dhaka Bangladesh',
     category: 'Onsite Event',
@@ -19,7 +19,7 @@ export const eventsData: Event[] = [
     organizer: {
       name: 'Alex tom',
       email: 'alex@gmail.com',
-      status: 'Initial Visitor'
+      status: 'active'
     },
     ticketTypes: ['Premium', 'VIP', 'Other', 'Standard'],
     description: 'Lorem ipsum dolor sit amet consectetur. Ultrices in feugiat venenatis habitant rutrum cursus elementum in quis aliquet. Lacus eu malesuada pellentesque massa integer amet vehenatis. Neque ut fringilla mattis fringilla celerent consequat leo aliquet cursus amet at purus elementum et pellentesque posucere bibendum cursus blandit risus pretius et arcu mattis in dui quis lorem aliquet nam rutrum.',
@@ -37,7 +37,7 @@ export const eventsData: Event[] = [
     ]
   },
   {
-    id: 2,
+    id: '2',
     name: 'Piano Star Event',
     location: 'Dhaka Bangladesh',
     category: 'Onsite Event',
@@ -53,7 +53,7 @@ export const eventsData: Event[] = [
     organizer: {
       name: 'Alex tom',
       email: 'alex@gmail.com',
-      status: 'Initial Visitor'
+      status: 'active'
     },
     ticketTypes: ['Premium', 'VIP', 'Other', 'Standard'],
     description: 'Lorem ipsum dolor sit amet consectetur. Ultrices in feugiat venenatis habitant rutrum cursus elementum in quis aliquet.',
@@ -65,7 +65,7 @@ export const eventsData: Event[] = [
     ]
   },
   {
-    id: 3,
+    id: '3',
     name: 'Piano Star Event',
     location: 'Dhaka Bangladesh',
     category: 'Onsite Event',
@@ -81,7 +81,7 @@ export const eventsData: Event[] = [
     organizer: {
       name: 'Alex tom',
       email: 'alex@gmail.com',
-      status: 'Initial Visitor'
+      status: 'active'
     },
     ticketTypes: ['Premium', 'VIP', 'Other', 'Standard'],
     description: 'Lorem ipsum dolor sit amet consectetur.',
@@ -89,7 +89,7 @@ export const eventsData: Event[] = [
     resoldTickets: []
   },
   {
-    id: 4,
+    id: '4',
     name: 'Piano Star Event',
     location: 'Dhaka Bangladesh',
     category: 'Onsite Event',
@@ -105,7 +105,7 @@ export const eventsData: Event[] = [
     organizer: {
       name: 'Alex tom',
       email: 'alex@gmail.com',
-      status: 'Initial Visitor'
+      status: 'active'
     },
     ticketTypes: ['Premium', 'VIP', 'Other', 'Standard'],
     description: 'Lorem ipsum dolor sit amet consectetur.',
