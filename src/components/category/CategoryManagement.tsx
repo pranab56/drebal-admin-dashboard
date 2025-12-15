@@ -275,7 +275,7 @@ const CategoryManagement: React.FC = () => {
                   <TableRow key={category._id}>
                     <TableCell>
                       <Image
-                        src={baseURL + category.coverImage}
+                        src={baseURL + category?.coverImage}
                         alt={category.title}
                         width={1000}
                         height={1000}

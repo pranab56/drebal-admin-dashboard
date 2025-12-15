@@ -11,6 +11,12 @@ const nextConfig: NextConfig = {
 
       {
         protocol: "https",
+        hostname: "ismail4000.binarybards.online",
+        pathname: "/image/**",
+      },
+
+      {
+        protocol: "https",
         hostname: "images.unsplash.com",
       },
 
