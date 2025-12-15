@@ -5,7 +5,6 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { EventDetails, Ticket } from './ticketType';
 
-
 interface TicketDetailsProps {
   ticket: Ticket;
   eventDetails: EventDetails;

@@ -1,7 +1,6 @@
 import TicketDetails from '../../../../components/ticket/TicketDetails';
 import { EventDetails, Ticket } from '../../../../components/ticket/ticketType';
 
-
 // Mock data - in real app, you'd fetch this based on the ID
 const mockEventDetails: EventDetails = {
   eventName: 'Piono',
@@ -45,13 +44,25 @@ const getMockTicket = (id: string): Ticket => ({
 });
 
 interface PageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
-export default function TicketDetailPage({ params }: PageProps) {
-  const ticket = getMockTicket(params.id);
+export default async function TicketDetailPage({ params }: PageProps) {
+  // Await the params promise
+  const { id } = await params;
+  const ticket = getMockTicket(id);
 
   return <TicketDetails ticket={ticket} eventDetails={mockEventDetails} />;
+}
+
+// Optional: If you want to generate static paths
+export async function generateStaticParams() {
+  // In a real app, fetch the IDs from your data source
+  return [
+    { id: '1' },
+    { id: '2' },
+    { id: '3' },
+  ];
 }
