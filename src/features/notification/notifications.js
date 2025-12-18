@@ -5,7 +5,7 @@ export const notficationApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     getAllNotification: builder.query({
       query: () => ({
-        url: `/action/all-notification`,
+        url: `/action/all-event-notification`,
         method: "GET",
       }),
       providesTags: ['notification'],

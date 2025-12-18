@@ -81,8 +81,9 @@ export default function EventDetailsPage({
   const { data: eventDetails, isLoading, error, refetch } = useEventDetailsQuery(eventId);
   const [approveEvent] = useEventStatusMutation();
 
+
   const handleApprove = async () => {
-    try {
+    try { 
       setIsProcessing(true);
       const response = await approveEvent(eventId).unwrap();
       console.log(response);
@@ -219,7 +220,7 @@ export default function EventDetailsPage({
         </div>
 
         <div className="flex gap-3">
-          {event.EventStatus === 'UnderReview' && (
+          {/* {event.EventStatus === 'UnderReview' && (
             <>
               <button
                 onClick={() => setShowRejectModal(true)}
@@ -234,8 +235,8 @@ export default function EventDetailsPage({
                 Approve
               </button>
             </>
-          )}
-          {event.EventStatus === 'Rejected' && (
+          )} */}
+          {eventDetails?.data?.EventStatus === 'UnderReview' && (
             <button
               onClick={() => setShowApproveModal(true)}
               className="px-6 py-2 bg-green-600 cursor-pointer hover:bg-green-700 text-white rounded-lg font-medium"
@@ -243,7 +244,7 @@ export default function EventDetailsPage({
               Approve
             </button>
           )}
-          {event.EventStatus === 'Live' && (
+          {eventDetails?.data?.EventStatus === 'Live' && (
             <button
               onClick={() => setShowRejectModal(true)}
               className="px-6 py-2 bg-red-500 hover:bg-red-600 cursor-pointer text-white rounded-lg font-medium"

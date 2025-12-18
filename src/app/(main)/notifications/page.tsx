@@ -11,24 +11,26 @@ import {
   useGetAllNotificationQuery
 } from '../../../features/notification/notifications';
 
+// Updated interface to match actual API response
 interface Notification {
   _id: string;
-  eventId: string;
-  eventTitle: string;
-  title: string;
-  message: string;
-  type: string;
-  status: string;
-  read: boolean;
-  createdAt: string;
+  eventName: string;  // Changed from eventTitle
+  eventDate: string;
+  notification: string;
 }
 
+// Updated response structure to match API
 interface NotificationsResponse {
-  data: Notification[];
-  meta: {
-    total: number;
-    page: number;
-    totalPage: number;
+  success: boolean;
+  message: string;
+  data: {
+    meta: {
+      total: number;
+      page: number;
+      limit: number;
+      totalPage: number;
+    };
+    data: Notification[];
   };
 }
 
@@ -46,23 +48,25 @@ export default function EventNotificationManagement() {
     refetch: () => void;
   };
 
+  console.log("notificationsData", notificationsData);
+
   const [adminSendToBroadcast] = useAdminSendToboardCastMutation();
   const [adminRejected] = useAdminRejectedMutation();
 
-  const handleBroadcast = async (eventId: string, notificationId: string) => {
+  const handleBroadcast = async (notificationId: string) => {
     // Add this notification ID to broadcasting set
     setBroadcastingIds(prev => new Set(prev).add(notificationId));
 
     try {
-      const response = await adminSendToBroadcast(eventId).unwrap();
+      const response = await adminSendToBroadcast(notificationId).unwrap();
       toast.success(response.message || 'Notification broadcasted successfully');
       refetch(); // Refresh the notifications list
     } catch (error: unknown) {
-      console.log('Login error:', error);
+      console.log('Broadcast error:', error);
+      toast.error('Failed to broadcast notification');
 
       // Type-safe error handling
       if (error instanceof Error) {
-        // Now you can safely access error.message
         console.log('Error message:', error.message);
       }
     } finally {
@@ -75,20 +79,20 @@ export default function EventNotificationManagement() {
     }
   };
 
-  const handleReject = async (eventId: string, notificationId: string) => {
+  const handleReject = async (notificationId: string) => {
     // Add this notification ID to rejecting set
     setRejectingIds(prev => new Set(prev).add(notificationId));
 
     try {
-      const response = await adminRejected(eventId).unwrap();
+      const response = await adminRejected(notificationId).unwrap();
       toast.success(response.message || 'Notification rejected successfully');
       refetch(); // Refresh the notifications list
     } catch (error: unknown) {
-      console.log('Login error:', error);
+      console.log('Reject error:', error);
+      toast.error('Failed to reject notification');
 
       // Type-safe error handling
       if (error instanceof Error) {
-        // Now you can safely access error.message
         console.log('Error message:', error.message);
       }
     } finally {
@@ -110,10 +114,10 @@ export default function EventNotificationManagement() {
     return `${day}-${month}-${year}`;
   };
 
-  // Filter notifications based on search query
-  const filteredNotifications = notificationsData?.data?.filter(notification =>
-    notification.eventTitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    notification.message.toLowerCase().includes(searchQuery.toLowerCase())
+  // Filter notifications based on search query - Updated to use correct field names
+  const filteredNotifications = notificationsData?.data?.data?.filter(notification =>
+    notification.eventName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    notification.notification.toLowerCase().includes(searchQuery.toLowerCase())
   ) || [];
 
   // Calculate pagination
@@ -142,10 +146,10 @@ export default function EventNotificationManagement() {
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-semibold">Event Notification Management</h1>
           </div>
-          {notificationsData?.meta && (
+          {notificationsData?.data?.meta && (
             <p className="text-gray-600 mt-2">
-              Total Notifications: {notificationsData.meta.total} |
-              Page {notificationsData.meta.page} of {notificationsData.meta.totalPage}
+              Total Notifications: {notificationsData.data.meta.total} |
+              Page {notificationsData.data.meta.page} of {notificationsData.data.meta.totalPage}
             </p>
           )}
         </div>
@@ -178,9 +182,8 @@ export default function EventNotificationManagement() {
                 <thead className="bg-green-50">
                   <tr>
                     <th className="text-left p-4 font-medium text-gray-700">Event Name</th>
-                    <th className="text-left p-4 font-medium text-gray-700">Created Date</th>
+                    <th className="text-left p-4 font-medium text-gray-700">Event Date</th>
                     <th className="text-left p-4 font-medium text-gray-700">Notification Message</th>
-                    <th className="text-left p-4 font-medium text-gray-700">Status</th>
                     <th className="text-left p-4 font-medium text-gray-700">Actions</th>
                   </tr>
                 </thead>
@@ -196,50 +199,32 @@ export default function EventNotificationManagement() {
                       >
                         <td className="p-4">
                           <div className="text-sm">
-                            <div className="text-gray-900 font-medium">{notification.eventTitle}</div>
-                            <div className="text-gray-600 text-xs mt-1">
-                              Type: {notification.type}
-                            </div>
+                            <div className="text-gray-900 font-medium">{notification.eventName}</div>
                           </div>
                         </td>
                         <td className="p-4 text-sm text-gray-900">
-                          {formatDate(notification.createdAt)}
+                          {formatDate(notification.eventDate)}
                         </td>
                         <td className="p-4 text-sm text-gray-600 max-w-md">
-                          <div>
-                            <div className="font-medium text-gray-900">{notification.title}</div>
-                            <div className="mt-1">{notification.message}</div>
-                          </div>
-                        </td>
-                        <td className="p-4">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${notification.status === 'success'
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-yellow-100 text-yellow-800'
-                            }`}>
-                            {notification.status}
-                          </span>
-                          <div className="text-xs text-gray-500 mt-1">
-                            {notification.read ? 'Read' : 'Unread'}
-                          </div>
+                          <div>{notification.notification}</div>
                         </td>
                         <td className="p-4">
                           <div className="flex gap-3">
                             <button
-                              onClick={() => handleBroadcast(notification.eventId, notification._id)}
+                              onClick={() => handleBroadcast(notification._id)}
                               disabled={isBroadcasting || isRejecting}
                               className="text-sm cursor-pointer font-medium text-gray-700 hover:text-gray-900 underline disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
                             >
-
-
-                              {isBroadcasting && <Loader2 className="w-3 h-3 animate-spin" />}Broadcast
-
+                              {isBroadcasting && <Loader2 className="w-3 h-3 animate-spin" />}
+                              Broadcast
                             </button>
                             <button
-                              onClick={() => handleReject(notification.eventId, notification._id)}
+                              onClick={() => handleReject(notification._id)}
                               disabled={isRejecting || isBroadcasting}
                               className="text-sm font-medium cursor-pointer text-red-600 hover:text-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
                             >
-                              {isRejecting && <Loader2 className="w-3 h-3 animate-spin" />} Reject
+                              {isRejecting && <Loader2 className="w-3 h-3 animate-spin" />}
+                              Reject
                             </button>
                           </div>
                         </td>

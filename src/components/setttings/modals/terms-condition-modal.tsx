@@ -26,6 +26,7 @@ export const TermsConditionModal = ({ onClose }: BaseModalProps) => {
     refetch
   } = useGetTermsAndConditionsQuery({});
 
+
   // Update mutation
   const [updateTerms, {
     isLoading: isUpdating,
@@ -34,7 +35,7 @@ export const TermsConditionModal = ({ onClose }: BaseModalProps) => {
   useEffect(() => {
     if (termsData?.success && termsData?.data) {
       // Set content and title from API response
-      setContent(termsData.data.content || '');
+      setContent(termsData?.data?.termsAdnCondition || '');
       setTitle(termsData.data.title || 'Terms and Conditions');
     }
   }, [termsData]);
@@ -149,7 +150,7 @@ export const TermsConditionModal = ({ onClose }: BaseModalProps) => {
         <div className="space-y-4">
           <div className="flex-1 overflow-hidden">
             <TipTapEditor
-              content={termsData?.data.content || content}
+              content={termsData?.data?.termsAdnCondition || content}
               onChange={handleContentChange}
               placeholder="Write your terms and conditions content here..."
             />

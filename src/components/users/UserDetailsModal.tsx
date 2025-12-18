@@ -67,14 +67,18 @@ export default function UserDetailsModal({
 }: UserDetailsModalProps) {
   if (!user) return null;
 
-  // Determine if user is attendee based on role
+  // Simple role check based on user.role
   const isAttendee = user.role === 'Attendee' || user.role === 'USER';
   const isOrganizer = user.role === 'Organizer' || user.role === 'ORGANIZER';
 
-  // Use singleUserData for organizer stats if available
-  const organizerStats = isOrganizer ? singleUserData : null;
-  const attendeeStats = isAttendee ? singleUserData : null;
+  console.log("User Details Modal Debug:", {
+    userRole: user.role,
+    isAttendee,
+    isOrganizer,
+    singleUserData
+  });
 
+  // Show loading if still loading
   if (isLoading) {
     return (
       <Dialog open={isOpen} onOpenChange={onClose}>
@@ -91,6 +95,9 @@ export default function UserDetailsModal({
     );
   }
 
+  // Use stats from singleUserData or fallback to user data
+  const statsData = singleUserData || {};
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col p-0">
@@ -99,9 +106,10 @@ export default function UserDetailsModal({
         </DialogTitle>
 
         {isAttendee ? (
-          <>
+          // ATTENDEE VIEW
+          <div className="flex flex-col h-full">
             {/* Attendee Profile Header */}
-            <div className="p-8 rounded-t-lg">
+            <div className="p-8 rounded-t-lg bg-blue-50">
               <div className="flex flex-col items-center text-center">
                 <div className="relative mb-4">
                   <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-white shadow-lg relative">
@@ -116,7 +124,7 @@ export default function UserDetailsModal({
                   </div>
                   <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2">
                     <span className="inline-block px-6 py-1 bg-blue-500 text-white rounded-full text-sm font-semibold shadow-md">
-                      {user.role}
+                      Attendee
                     </span>
                   </div>
                 </div>
@@ -151,35 +159,39 @@ export default function UserDetailsModal({
                 </div>
               </div>
 
-              {/* Stats Cards */}
+              {/* Stats Cards - ATTENDEE STATS ONLY */}
               <div className="flex justify-center gap-10">
-                <div className="w-full bg-[#E6F4EA] rounded-lg">
+                <div className="w-full bg-blue-50 rounded-lg">
                   <div className="flex items-center justify-center mb-4 py-5 text-center">
                     <div>
                       <p className="text-gray-700 text-sm mb-1">Total Tickets Purchased</p>
-                      <p className="text-4xl font-bold text-gray-900">{attendeeStats?.totalTicketSold || user.totalTicketsPurchased || 0}</p>
+                      <p className="text-4xl font-bold text-gray-900">
+                        {statsData.totalTicketSold || user.totalTicketsPurchased || 0}
+                      </p>
                     </div>
                   </div>
                 </div>
 
-                <div className='bg-[#E6F4EA] w-full rounded-lg'>
+                <div className='bg-blue-50 w-full rounded-lg'>
                   <div className="flex items-center justify-center text-center py-5 mb-4 w-full">
                     <div>
                       <p className="text-gray-700 text-sm mb-1">Total Spend</p>
-                      <p className="text-4xl font-bold text-gray-900">{attendeeStats?.purchaseQuantity ? `$${attendeeStats.purchaseQuantity}` : user.totalSpend || "$0"}</p>
+                      <p className="text-4xl font-bold text-gray-900">
+                        {statsData.purchaseQuantity ? `$${statsData.purchaseQuantity}` : user.totalSpend || "$0"}
+                      </p>
                     </div>
                   </div>
                 </div>
               </div>
 
               {/* Live Events for Attendee (if any) */}
-              {attendeeStats?.allLiveEvent && attendeeStats.allLiveEvent.length > 0 && (
+              {statsData.allLiveEvent && statsData.allLiveEvent.length > 0 ? (
                 <div className="mt-8">
                   <h3 className="text-lg font-bold text-gray-900 mb-4">Live Events</h3>
                   <div className="border rounded-lg overflow-hidden">
                     <Table>
                       <TableHeader>
-                        <TableRow className="bg-green-50 hover:bg-green-50">
+                        <TableRow className="bg-blue-50 hover:bg-blue-50">
                           <TableHead className="font-semibold text-gray-700 text-xs">Event Name</TableHead>
                           <TableHead className="font-semibold text-gray-700 text-xs">Event Code</TableHead>
                           <TableHead className="font-semibold text-gray-700 text-xs">Organizer</TableHead>
@@ -188,7 +200,7 @@ export default function UserDetailsModal({
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {attendeeStats.allLiveEvent.map((event: LiveEvent, index: number) => (
+                        {statsData.allLiveEvent.map((event: LiveEvent, index: number) => (
                           <TableRow key={index} className="hover:bg-gray-50">
                             <TableCell className="text-sm text-gray-900">{event.eventName}</TableCell>
                             <TableCell className="text-sm text-gray-600">{event.eventCode}</TableCell>
@@ -207,19 +219,23 @@ export default function UserDetailsModal({
                     </Table>
                   </div>
                 </div>
+              ) : (
+                <div className="mt-8 text-center py-8">
+                  <p className="text-gray-500">No live events data available</p>
+                </div>
               )}
             </div>
-          </>
+          </div>
         ) : (
-          // Organizer view
+          // ORGANIZER VIEW
           <div className="flex flex-col h-full">
             {/* User Info Header */}
-            <div className="flex items-start gap-6 pb-6 border-b flex-shrink-0 p-8">
+            <div className="flex items-start gap-6 pb-6 border-b flex-shrink-0 p-8 bg-green-50">
               <div className="w-full max-w-3xl">
                 <div className="grid grid-cols-3 gap-6">
                   {/* Left Column - Profile */}
                   <div className="col-span-1">
-                    <div className="bg-white rounded-3xl p-6 flex flex-col items-center justify-center h-full">
+                    <div className="bg-white rounded-3xl p-6 flex flex-col items-center justify-center h-full shadow-sm">
                       <div className="w-20 h-20 rounded-full overflow-hidden mb-4 border-4 border-white shadow-md relative">
                         <Image
                           src={user.avatar || "/default-avatar.png"}
@@ -231,35 +247,43 @@ export default function UserDetailsModal({
                       </div>
                       <h2 className="text-lg font-bold text-gray-900 mb-2">{user.name}</h2>
                       <span className="inline-block px-4 py-1 bg-green-500 text-white rounded-full text-sm font-semibold">
-                        {user.role}
+                        Organizer
                       </span>
                     </div>
                   </div>
 
-                  {/* Right Column - Stats Grid */}
+                  {/* Right Column - Stats Grid - ORGANIZER STATS ONLY */}
                   <div className="col-span-2 grid grid-cols-2 gap-6">
                     {/* Total Events */}
-                    <div className="bg-green-50 rounded-3xl p-6 flex flex-col items-center justify-center">
+                    <div className="bg-white rounded-3xl p-6 flex flex-col items-center justify-center shadow-sm">
                       <p className="text-gray-600 text-sm mb-2">Total Events</p>
-                      <p className="text-4xl font-bold text-gray-900">{organizerStats?.totalEvent || user.totalEvents || 0}</p>
+                      <p className="text-4xl font-bold text-gray-900">
+                        {statsData.totalEvent || user.totalEvents || 0}
+                      </p>
                     </div>
 
                     {/* Active Events */}
-                    <div className="bg-green-50 rounded-lg p-6 flex flex-col items-center justify-center">
+                    <div className="bg-white rounded-lg p-6 flex flex-col items-center justify-center shadow-sm">
                       <p className="text-gray-600 text-sm mb-2">Active Events</p>
-                      <p className="text-4xl font-bold text-gray-900">{organizerStats?.activeEvents || user.activeEvents || 0}</p>
+                      <p className="text-4xl font-bold text-gray-900">
+                        {statsData.activeEvents || user.activeEvents || 0}
+                      </p>
                     </div>
 
                     {/* Total Tickets Sold */}
-                    <div className="bg-green-50 rounded-lg p-6 flex flex-col items-center justify-center">
+                    <div className="bg-white rounded-lg p-6 flex flex-col items-center justify-center shadow-sm">
                       <p className="text-gray-600 text-sm mb-2">Total Tickets Sold</p>
-                      <p className="text-4xl font-bold text-gray-900">{organizerStats?.totalSold || user.totalSold || 0}</p>
+                      <p className="text-4xl font-bold text-gray-900">
+                        {statsData.totalSold || user.totalTicketsSoldOrg || 0}
+                      </p>
                     </div>
 
                     {/* Total Revenue */}
-                    <div className="bg-green-50 rounded-lg p-6 flex flex-col items-center justify-center">
+                    <div className="bg-white rounded-lg p-6 flex flex-col items-center justify-center shadow-sm">
                       <p className="text-gray-600 text-sm mb-2">Total Revenue</p>
-                      <p className="text-4xl font-bold text-gray-900">{organizerStats?.totalRevenue ? `$${organizerStats.totalRevenue}` : user.totalRevenue || "$0"}</p>
+                      <p className="text-4xl font-bold text-gray-900">
+                        {statsData.totalRevenue ? `$${statsData.totalRevenue}` : user.totalRevenue || "$0"}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -296,8 +320,8 @@ export default function UserDetailsModal({
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {organizerStats?.allLiveEvent && organizerStats.allLiveEvent.length > 0 ? (
-                        organizerStats.allLiveEvent.map((event: LiveEvent, index: number) => (
+                      {statsData.allLiveEvent && statsData.allLiveEvent.length > 0 ? (
+                        statsData.allLiveEvent.map((event: LiveEvent, index: number) => (
                           <TableRow key={index} className="hover:bg-gray-50">
                             <TableCell className="text-sm text-gray-900">{event.eventName}</TableCell>
                             <TableCell className="text-sm text-gray-600">{event.eventCode}</TableCell>

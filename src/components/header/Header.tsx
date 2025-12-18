@@ -11,25 +11,27 @@ import { baseURL } from '../../../utils/BaseURL';
 import { useGetAllNotificationQuery } from '../../features/notification/notifications';
 import { useGetPersonalInformationQuery } from '../../features/settings/settingsApi';
 
-// Define notification interface
-interface NotificationEvent {
-  eventId?: string;
-  eventTitle?: string;
-}
-
+// Updated notification interface to match actual API response
 interface Notification {
   _id: string;
-  title: string;
-  message: string;
-  status: string;
-  read: boolean;
-  createdAt: string;
-  event?: NotificationEvent;
+  eventName: string;
+  eventDate: string;
+  notification: string;
 }
 
+// Updated response structure to match API
 interface NotificationsResponse {
-  data?: Notification[];
-  message?: string;
+  success: boolean;
+  message: string;
+  data: {
+    meta: {
+      page: number;
+      limit: number;
+      total: number;
+      totalPage: number;
+    };
+    data: Notification[];
+  };
 }
 
 // Define personal information interface
@@ -60,11 +62,14 @@ export default function MainlandHeader() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const notificationRef = useRef<HTMLDivElement>(null);
 
-  // Calculate unread notifications count
+  // Get notifications from the nested data structure
   const notificationsResponse = notificationsData as NotificationsResponse | undefined;
-  const unreadCount = notificationsResponse?.data?.filter(
-    (notification: Notification) => !notification.read
-  )?.length || 0;
+  const notifications = notificationsResponse?.data?.data || [];
+  const totalNotifications = notificationsResponse?.data?.meta?.total || 0;
+
+  // Since API doesn't have 'read' field, we'll show total count
+  // You may want to implement read tracking separately
+  const unreadCount = totalNotifications;
 
   // Format time ago function
   const formatTimeAgo = (dateString: string): string => {
@@ -81,28 +86,14 @@ export default function MainlandHeader() {
     return `${Math.floor(diffInSeconds / 31536000)} year${Math.floor(diffInSeconds / 31536000) > 1 ? 's' : ''} ago`;
   };
 
-  // Get status badge color
-  const getStatusColor = (status: string): string => {
-    switch (status) {
-      case 'approved':
-        return 'bg-green-100 text-green-800 border-green-200';
-      case 'rejected':
-        return 'bg-red-100 text-red-800 border-red-200';
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
-  };
-
   // Get avatar fallback text
-  const getAvatarFallback = (eventTitle?: string): string => {
-    if (!eventTitle) return 'EV';
-    const words = eventTitle.split(' ');
+  const getAvatarFallback = (eventName?: string): string => {
+    if (!eventName) return 'EV';
+    const words = eventName.split(' ');
     if (words.length >= 2) {
       return `${words[0][0]}${words[1][0]}`.toUpperCase();
     }
-    return eventTitle.substring(0, 2).toUpperCase();
+    return eventName.substring(0, 2).toUpperCase();
   };
 
   // Close dropdowns when clicking outside
@@ -148,13 +139,10 @@ export default function MainlandHeader() {
   };
 
   const handleNotificationItemClick = (notification: Notification) => {
-    // You can add specific navigation based on notification type
+    console.log(notification)
     setIsNotificationOpen(false);
-
-    // Example: Navigate to event if eventId exists
-    if (notification.event?.eventId) {
-      router.push(`/events/${notification.event.eventId}`);
-    }
+    // Navigate based on notification - you can customize this
+    // For example: router.push(`/events/${notification._id}`);
   };
 
   // Loading state
@@ -199,9 +187,9 @@ export default function MainlandHeader() {
             <div className="absolute right-0 top-full mt-2 w-80 rounded-lg border border-gray-200 bg-white shadow-lg z-50 max-h-96 overflow-hidden flex flex-col">
               <div className="p-3 border-b border-gray-200">
                 <h3 className="text-sm font-semibold text-gray-900">Notifications</h3>
-                {notificationsResponse?.data && notificationsResponse.data.length > 0 && (
+                {notifications.length > 0 && (
                   <p className="text-xs text-gray-500 mt-1">
-                    {unreadCount} unread of {notificationsResponse.data.length} total
+                    {totalNotifications} total notification{totalNotifications !== 1 ? 's' : ''}
                   </p>
                 )}
               </div>
@@ -218,13 +206,12 @@ export default function MainlandHeader() {
                       </div>
                     </div>
                   ))
-                ) : notificationsResponse?.data && notificationsResponse.data.length > 0 ? (
-                  notificationsResponse.data.slice(0, 5).map((notification: Notification) => (
+                ) : notifications.length > 0 ? (
+                  notifications.slice(0, 5).map((notification: Notification) => (
                     <div
                       key={notification._id}
                       onClick={() => handleNotificationItemClick(notification)}
-                      className={`flex items-start gap-3 p-3 hover:bg-gray-50 cursor-pointer transition-colors border-b border-gray-100 last:border-b-0 ${!notification.read ? 'bg-blue-50' : ''
-                        }`}
+                      className="flex items-start gap-3 p-3 hover:bg-gray-50 cursor-pointer transition-colors border-b border-gray-100 last:border-b-0"
                       role="button"
                       tabIndex={0}
                       onKeyDown={(e) => {
@@ -234,40 +221,34 @@ export default function MainlandHeader() {
                       }}
                     >
                       <Avatar className="h-10 w-10 flex-shrink-0 ring-2 ring-[#00a651]">
-                        <AvatarFallback className={`font-medium ${getStatusColor(notification.status)}`}>
-                          {getAvatarFallback(notification.event?.eventTitle)}
+                        <AvatarFallback className="font-medium bg-green-100 text-green-800 border-green-200">
+                          {getAvatarFallback(notification.eventName)}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-2 mb-1">
                           <p className="text-xs font-medium text-gray-900 truncate">
-                            {notification.title}
+                            {notification.eventName}
                           </p>
-                          {!notification.read && (
-                            <span className="flex-shrink-0 h-2 w-2 rounded-full bg-blue-500"></span>
-                          )}
                         </div>
                         <p className="text-xs text-gray-700 leading-relaxed line-clamp-2">
-                          {notification.message}
+                          {notification.notification}
                         </p>
                         <div className="flex items-center justify-between mt-2">
                           <p className="text-[10px] text-gray-500">
-                            {formatTimeAgo(notification.createdAt)}
+                            {formatTimeAgo(notification.eventDate)}
                           </p>
-                          {notification.status && (
-                            <span className={`text-[10px] px-2 py-0.5 rounded-full border ${getStatusColor(notification.status)}`}>
-                              {notification.status}
-                            </span>
-                          )}
                         </div>
-                        {notification.event?.eventTitle && (
-                          <div className="flex items-center gap-1 mt-1">
-                            <span className="text-[10px] text-gray-500">Event:</span>
-                            <span className="text-[10px] text-gray-700 font-medium truncate">
-                              {notification.event.eventTitle}
-                            </span>
-                          </div>
-                        )}
+                        <div className="flex items-center gap-1 mt-1">
+                          <span className="text-[10px] text-gray-500">Event Date:</span>
+                          <span className="text-[10px] text-gray-700 font-medium">
+                            {new Date(notification.eventDate).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric'
+                            })}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   ))
@@ -282,7 +263,7 @@ export default function MainlandHeader() {
                   </div>
                 )}
               </div>
-              {notificationsResponse?.data && notificationsResponse.data.length > 0 && (
+              {notifications.length > 0 && (
                 <div className="p-2 border-t border-gray-200">
                   <button
                     onClick={handleViewAllClick}
@@ -321,7 +302,6 @@ export default function MainlandHeader() {
                   }}
                 />
               ) : null}
-
             </Avatar>
             <div className="flex flex-col items-start">
               <span className="text-sm font-medium text-gray-900 line-clamp-1 max-w-[120px]">

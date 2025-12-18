@@ -9,7 +9,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Search } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react"; // Added useRef
 import ConfirmationDialog from '../../../components/users/ConfirmationDialog';
 import Pagination from '../../../components/users/Pagination';
 import UserDetailsModal from '../../../components/users/UserDetailsModal';
@@ -37,7 +37,7 @@ interface EventActivity {
   amount: string;
 }
 
-// Mock data for activity (you'll need to replace this with real API data)
+// Mock data for activity
 const mockTicketActivities: TicketActivity[] = [
   {
     eventName: "Summer Music Festival",
@@ -69,14 +69,15 @@ export default function MainlandUserList() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [showReportDialog, setShowReportDialog] = useState(false);
-  console.log(showReportDialog);
+  console.log(showReportDialog)
   const [showBlockDialog, setShowBlockDialog] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
-  const [singleUserDetails, setSingleUserDetails] = useState<ApiUser | null>(null);
-  console.log(singleUserDetails);
+  const [modalUserData, setModalUserData] = useState<User | null>(null); // Separate state for modal
 
-  // Get all users with refetch option
+  const isUpdatingRef = useRef(false); // Ref to prevent infinite updates
+
+  // Get all users
   const {
     data: allUsersData,
     isLoading,
@@ -88,23 +89,20 @@ export default function MainlandUserList() {
   const {
     data: singleUserData,
     isLoading: singleUserLoading,
-    refetch: refetchSingleUser
   } = useGetSingleUserQuery(
     selectedUser?._id,
-    { skip: !selectedUser?._id }
+    { skip: !selectedUser?._id || !isModalOpen } // Only fetch when modal is open
   );
 
   const [blockAndUnBlock, { isLoading: blockAndUnBlockLoading }] = useBlockAndUnBlockMutation();
 
   // Function to map API user data to User type
-  const mapApiUserToUserType = useCallback((apiUser: ApiUser, additionalData?: ApiUser): User => {
+  const mapApiUserToUserType = useCallback((apiUser: ApiUser): User => {
     // Generate a simple account number from ID
     const accountNumber = `ACC-${apiUser._id.substring(0, 8).toUpperCase()}`;
 
-    // Format role for display
-    const displayRole: UserRole = apiUser.role === 'ORGANIZER' ? 'Organizer' :
-      apiUser.role === 'USER' ? 'Attendee' :
-        apiUser.role as UserRole;
+    // Always use consistent role names - 'Organizer' or 'Attendee'
+    const displayRole: UserRole = apiUser.role === 'ORGANIZER' ? 'Organizer' : 'Attendee';
 
     // Format date of birth
     const dob = apiUser.personalInfo?.dateOfBirth
@@ -135,7 +133,7 @@ export default function MainlandUserList() {
     // Default avatar
     const avatar = "https://i.ibb.co/z5YHLV9/profile.png";
 
-    // Get status from API - ensure proper casing
+    // Get status from API
     const status = apiUser.status === 'Blocked' ? 'Blocked' :
       apiUser.status === 'blocked' ? 'Blocked' :
         apiUser.status === 'Active' ? 'Active' :
@@ -156,24 +154,22 @@ export default function MainlandUserList() {
       verified: false,
       personalInfo: apiUser.personalInfo,
       address: apiUser.address,
-      // Add organizer stats if available in additional data
-      totalEvents: additionalData?.totalEvent,
-      activeEvents: additionalData?.activeEvents,
-      totalTicketsSoldOrg: additionalData?.totalSold,
-      totalRevenue: additionalData?.totalRevenue ? `$${additionalData.totalRevenue}` : "$0",
-      totalSold: additionalData?.totalSold,
-      // Add attendee stats if available in additional data
-      totalTicketsPurchased: additionalData?.totalTicketSold,
-      totalSpend: additionalData?.purchaseQuantity ? `$${additionalData.purchaseQuantity}` : "$0"
+      // Initialize stats as 0
+      totalEvents: 0,
+      activeEvents: 0,
+      totalTicketsSoldOrg: 0,
+      totalRevenue: "$0",
+      totalSold: 0,
+      totalTicketsPurchased: 0,
+      totalSpend: "$0"
     };
   }, []);
 
-  // Load initial user list - runs only when allUsersData changes
+  // Load initial user list
   useEffect(() => {
     if (allUsersData?.success && allUsersData.data) {
       const apiUsers = Array.isArray(allUsersData.data) ? allUsersData.data : [allUsersData.data];
 
-      // Map API data to User type without additional data
       const mappedUsers = apiUsers.map((user: ApiUser) => mapApiUserToUserType(user));
 
       setUsers(mappedUsers);
@@ -181,46 +177,38 @@ export default function MainlandUserList() {
     }
   }, [allUsersData, mapApiUserToUserType]);
 
-  // Update single user details when fetched
+  // Update modal user data when single user data is fetched - FIXED to prevent infinite loop
   useEffect(() => {
-    if (singleUserData?.success && singleUserData.data) {
-      const userData = singleUserData.data as ApiUser;
-      setSingleUserDetails(userData);
-
-      // Update the selected user with additional details
-      if (selectedUser) {
-        const updatedUser: User = {
-          ...selectedUser,
-          // Update organizer stats
-          totalEvents: userData.totalEvent,
-          activeEvents: userData.activeEvents,
-          totalTicketsSoldOrg: userData.totalSold,
-          totalRevenue: userData.totalRevenue ? `$${userData.totalRevenue}` : "$0",
-          totalSold: userData.totalSold,
-          // Update attendee stats
-          totalTicketsPurchased: userData.totalTicketSold,
-          totalSpend: userData.purchaseQuantity ? `$${userData.purchaseQuantity}` : "$0",
-          // Update user info from nested structure
-          ...(userData.user && {
-            ...userData.user,
-            name: userData.user.name || selectedUser.name,
-            email: userData.user.email || selectedUser.email,
-            avatar: userData.user.image || selectedUser.avatar,
-            personalInfo: {
-              ...selectedUser.personalInfo,
-              ...userData.user.personalInfo
-            },
-            address: {
-              ...selectedUser.address,
-              ...userData.user.address
-            }
-          })
-        };
-        setSelectedUser(updatedUser);
-      }
+    if (isUpdatingRef.current || !singleUserData?.success || !singleUserData.data || !selectedUser) {
+      return;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [singleUserData]); // selectedUser is intentionally excluded as it's managed separately
+
+    const singleData = singleUserData.data;
+
+    // Prevent infinite update loop
+    isUpdatingRef.current = true;
+
+    // Create updated user data for modal
+    const updatedUser: User = {
+      ...selectedUser,
+      // Update stats from single user data
+      totalEvents: singleData.totalEvent || selectedUser.totalEvents || 0,
+      activeEvents: singleData.activeEvents || selectedUser.activeEvents || 0,
+      totalTicketsSoldOrg: singleData.totalSold || selectedUser.totalTicketsSoldOrg || 0,
+      totalRevenue: singleData.totalRevenue ? `$${singleData.totalRevenue}` : selectedUser.totalRevenue || "$0",
+      totalSold: singleData.totalSold || selectedUser.totalSold || 0,
+      totalTicketsPurchased: singleData.totalTicketSold || selectedUser.totalTicketsPurchased || 0,
+      totalSpend: singleData.purchaseQuantity ? `$${singleData.purchaseQuantity}` : selectedUser.totalSpend || "$0"
+    };
+
+    setModalUserData(updatedUser);
+
+    // Reset ref after a delay
+    setTimeout(() => {
+      isUpdatingRef.current = false;
+    }, 100);
+
+  }, [singleUserData, selectedUser]);
 
   // Filter users
   useEffect(() => {
@@ -238,14 +226,14 @@ export default function MainlandUserList() {
         return matchesRole && matchesSearch;
       });
       setFilteredUsers(filtered);
-      setCurrentPage(1); // Reset to first page when filters change
+      setCurrentPage(1);
     }
   }, [selectedRole, searchQuery, users]);
 
   const handleViewUser = async (user: User) => {
     setSelectedUser(user);
+    setModalUserData(user); // Initialize modal data with basic user info
     setIsModalOpen(true);
-    // The single user query will automatically fetch when selectedUser._id is set
   };
 
   const handleBlockUser = (user: User) => {
@@ -258,39 +246,41 @@ export default function MainlandUserList() {
 
     try {
       const response = await blockAndUnBlock(selectedUser._id).unwrap();
-      console.log("block and unblock response", response);
 
-      // Check if the response contains the updated user data
       if (response.success && response.data) {
-        // If API returns the updated user, update the specific user
+        // Update the specific user in the users array
         const updatedUser = mapApiUserToUserType(response.data as ApiUser);
 
-        // Update the specific user in the users array
         setUsers(prevUsers =>
           prevUsers.map(user =>
             user._id === selectedUser._id ? updatedUser : user
           )
         );
 
-        // Also update selectedUser if it's the same user
+        // Update selectedUser if it's the same
         if (selectedUser._id === updatedUser._id) {
           setSelectedUser(updatedUser);
         }
-      } else {
-        // If API doesn't return the updated user, refetch all users
-        refetch();
 
-        // Also refetch single user if modal is open
-        if (isModalOpen && selectedUser?._id) {
-          refetchSingleUser();
+        // Update modalUserData if modal is open
+        if (isModalOpen && selectedUser._id === updatedUser._id) {
+          setModalUserData(updatedUser);
         }
+      } else {
+        refetch();
       }
 
       setShowBlockDialog(false);
-      console.log("User blocked/unblocked successfully");
     } catch (error) {
       console.error("Failed to block user:", error);
     }
+  };
+
+  const handleModalClose = () => {
+    setIsModalOpen(false);
+    setSelectedUser(null);
+    setModalUserData(null);
+    isUpdatingRef.current = false;
   };
 
   // Paginate users
@@ -373,16 +363,12 @@ export default function MainlandUserList() {
         </CardContent>
       </Card>
 
-      {/* User Details Modal */}
+      {/* User Details Modal - Use modalUserData instead of selectedUser */}
       <UserDetailsModal
-        user={selectedUser}
-        singleUserData={singleUserData?.data as ApiUser}
+        user={modalUserData || selectedUser} // Fallback to selectedUser if modalUserData is null
+        singleUserData={singleUserData?.data}
         isOpen={isModalOpen}
-        onClose={() => {
-          setIsModalOpen(false);
-          setSelectedUser(null);
-          setSingleUserDetails(null);
-        }}
+        onClose={handleModalClose}
         onReport={() => setShowReportDialog(true)}
         ticketActivities={mockTicketActivities}
         eventActivities={mockEventActivities}
