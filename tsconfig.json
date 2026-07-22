@@ -28,6 +28,6 @@
     "**/*.tsx",
     ".next/types/**/*.ts",
     "src/hooks/useToast.js"
-  ],
+, "next.config.js"  ],
   "exclude": ["node_modules"]
 }
