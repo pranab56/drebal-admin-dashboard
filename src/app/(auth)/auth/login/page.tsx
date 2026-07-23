@@ -152,7 +152,7 @@ export default function LoginPage() {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 cursor-pointer text-gray-400 hover:text-gray-600 focus:outline-none"
                   >
                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
@@ -181,7 +181,7 @@ export default function LoginPage() {
                       )}
                     </div>
                   </div>
-                  <span className="ml-2 text-xs text-gray-700">Remember me</span>
+                  <span className="ml-2 text-xs text-gray-700 select-none">Remember me</span>
                 </label>
                 <Link href="/auth/forgot-password" className="text-xs text-gray-600 hover:text-green-600 transition-colors">
                   Forgot password?
@@ -192,7 +192,7 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-colors duration-200 cursor-pointer text-sm"
               >
                 {isLoading ? 'Loading...' : 'Login'}
               </button>
